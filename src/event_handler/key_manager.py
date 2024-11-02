@@ -182,6 +182,11 @@ class KeyListener:
                 ).start()
                 # hook(event)
 
+    @classmethod
+    def notify_all(cls, event: pygame.Event):
+        for listener in cls._listeners.values():
+            listener.notify(event)
+
     def load_from_file(self,
                        filepath: Path):
         raise NotImplementedError("This feature is not yet available")
