@@ -1,0 +1,14 @@
+[project]
+name = "event_handler"
+version = "0.1.0"
+authors = [
+    { name="BetterBuiltFool", email="NoneYet@notavailable.com"}
+]
+description = "A simple decorator-based event handler and key bind system for use with pygame"
+readme = "README.md"
+requires-python = ">=3.12.4"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: ***REMOVED***",
+    "Operating System :: OS Independent",
+]
