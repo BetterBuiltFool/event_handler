@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import logging
 from pathlib import Path
 import threading
 from typing import Callable, NamedTuple, Optional
 
 import pygame
 
+logger = logging.getLogger(__name__)
 
 KeyBind = NamedTuple("KeyBind",
                      [("bind_name", str),
@@ -104,6 +106,40 @@ class KeyListener:
                 hooks.append(responder)
             return responder
         return decorator
+
+    def rebind(
+        self,
+        key_bind_name: str,
+        new_key: Optional[int],
+        new_mod: int = pygame.KMOD_NONE
+    ) -> tuple[int | None, int] | None:
+        """
+        Attempts to assign the new key info the the named bind.
+        Generates a warning if the bind is not registered.
+
+        :param key_bind_name: Name of the bind to be reassigned
+        :param default_key: Pygame key to be assigned to
+        :param default_mod: Pygame mod keys for assignment,
+        defaults to pygame.KMOD_NONE
+        :return: A tuple containing the previous key and mod key
+        """
+        old_bind = self.key_map.get_bound_key(key_bind_name)
+        if old_bind:
+            logger.warning(
+                f"Attempted to rebind \'{key_bind_name}\' when bind does not"
+                " exist. \n Program might be attempting to rebind before"
+                " generating binds, or bind name may be incorrect."
+            )
+            return None
+        self.key_map.rebind(
+            KeyBind(
+                bind_name=key_bind_name,
+                mod=new_mod
+            ),
+            new_key=new_key
+        )
+
+        return old_bind
 
     def _generate_bind(self,
                        key_bind_name: str,
