@@ -69,10 +69,12 @@ class KeyListener:
         self.key_hooks: dict[str, list[Callable]] = {}
         self.handle = handle
 
-    def register(self,
-                 key_bind_name: str,
-                 default_key: Optional[int] = None,
-                 default_mod: int = pygame.KMOD_NONE) -> Callable:
+    def bind(
+        self,
+        key_bind_name: str,
+        default_key: Optional[int] = None,
+        default_mod: int = pygame.KMOD_NONE
+    ) -> Callable:
         """
         Adds a bind field to the key registry, and associates the following
         callable with that field so when the key associated with the field is
