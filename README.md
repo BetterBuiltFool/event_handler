@@ -206,11 +206,11 @@ If a bind is used for multiple functions, the first processed call is used to es
 ```python
 @KEYBINDS.bind("example2", pygame.K_o)
 def func1(_):
-    pass
+    ...
 
 @KEYBINDS.bind("example2", pygame.K_z, pygame.KMOD_CTRL)
 def func2(_):
-    pass
+    ...
 ```
 
 In this example, pressing the "o" key will activate both functions, even though func2 asks for Ctrl+z.
@@ -301,6 +301,7 @@ _However_, this comes at the cost of thread safety. These functions may be able 
 ## Roadmap
 
 - [ ] Allow for both concurrent and sequential function calls.
+- [ ] Allow for saving/loading keymaps via the file system.
 <!--
 - [ ] Feature 2
 - [ ] Feature 3
