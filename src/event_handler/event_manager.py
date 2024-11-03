@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import logging
 import threading
-from typing import Callable
+from typing import Callable, Optional
 
 import pygame
+
+logger = logging.getLogger(__name__)
 
 
 class EventManager:
@@ -18,6 +21,39 @@ class EventManager:
             self.listeners.setdefault(event_type, []).append(listener)
             return listener
         return decorator
+
+    def deregister(self, func: Callable, event_type: Optional[int] = None):
+        """
+        Remove the given function from the specified event type. If no event
+        type is specified, the function is cleared from all events.
+
+        :param func: Function to be removed from the register.
+        :param event_type: Pygame event type to which the function is to be
+        removed, defaults to None
+        """
+        if event_type is not None:
+            call_list = self.listeners.get(event_type)
+            if not call_list:
+                logger.warning(
+                    "No functions are registered to "
+                    f"{pygame.event.event_name(event_type)}"
+                )
+                return
+            if func not in call_list:
+                logger.warning(
+                    f"Function \'{func.__name__} is not bound to "
+                    f"{pygame.event.event_name(event_type)}"
+                )
+                return
+            call_list.remove(func)
+        else:
+            for event, call_list in self.listeners.items():
+                if func in call_list:
+                    logger.info(
+                        f"Removing function \'{func.__name__} from "
+                        f"{pygame.event.event_name(event)}"
+                    )
+                    call_list.remove(func)
 
     def notify(self, event: pygame.Event):
         """
