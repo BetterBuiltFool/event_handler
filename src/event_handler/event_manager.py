@@ -55,6 +55,25 @@ class EventManager:
                     )
                     call_list.remove(func)
 
+    def purge_event(self, event_type: int):
+        """
+        Attempts to clear all functions from the specified event.
+
+        :param event_type: Pygame event type
+        """
+        call_list = self.listeners.get(event_type)
+        if not call_list:
+            logger.warning(
+                f"Cannot purge event {pygame.event.event_name(event_type)}./n"
+                "Event has no registered functions."
+            )
+            return
+        logger.info(
+            "Clearing all functions from event "
+            f"{pygame.event.event_name(event_type)}"
+        )
+        call_list.clear()
+
     def notify(self, event: pygame.Event):
         """
         Finds all listeners for a given event, and calls them in a new thread
