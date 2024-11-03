@@ -35,13 +35,13 @@ class EventManager:
             call_list = self.listeners.get(event_type)
             if not call_list:
                 logger.warning(
-                    "No functions are registered to "
+                    " No functions are registered to "
                     f"{pygame.event.event_name(event_type)}"
                 )
                 return
             if func not in call_list:
                 logger.warning(
-                    f"Function \'{func.__name__} is not bound to "
+                    f" Function \'{func.__name__}\' is not bound to "
                     f"{pygame.event.event_name(event_type)}"
                 )
                 return
@@ -50,7 +50,7 @@ class EventManager:
             for event, call_list in self.listeners.items():
                 if func in call_list:
                     logger.info(
-                        f"Removing function \'{func.__name__} from "
+                        f" Removing function \'{func.__name__}\' from "
                         f"{pygame.event.event_name(event)}"
                     )
                     call_list.remove(func)
@@ -64,12 +64,12 @@ class EventManager:
         call_list = self.listeners.get(event_type)
         if not call_list:
             logger.warning(
-                f"Cannot purge event {pygame.event.event_name(event_type)}./n"
+                f" Cannot purge event {pygame.event.event_name(event_type)}./n"
                 "Event has no registered functions."
             )
             return
         logger.info(
-            "Clearing all functions from event "
+            " Clearing all functions from event "
             f"{pygame.event.event_name(event_type)}"
         )
         call_list.clear()

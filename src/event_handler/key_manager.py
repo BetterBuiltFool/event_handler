@@ -47,7 +47,8 @@ class KeyMap:
     def get_bound_key(self,
                       bind_name: str
                       ) -> tuple[int | None, int] | None:
-        """Finds the current key that binds to the given bind name, and
+        """
+        Finds the current key that binds to the given bind name, and
         returns it in a tuple with the bound mod keys.
 
         If the bind is not used, returns None.
@@ -60,6 +61,46 @@ class KeyMap:
             for key_bind in key_bind_list:
                 if key_bind.bind_name == bind_name:
                     return key, key_bind.mod
+        return None
+
+    def remove_bind(self,
+                    bind_name: str,
+                    key: Optional[int] = None
+                    ):
+        """
+        Eliminates the specified bind from the specified key, or all instances
+        if no key is specified.
+
+        :param bind_name: Name of the bind being removed
+        :param key: Integer of pygame key code to search, defaults to None
+        """
+        if key is not None:
+            key_bind_list = self.key_binds.get(key, None)
+            if not key_bind_list:
+                logger.warning(
+                    f" Cannot remove \'{bind_name}\';"
+                    f" {pygame.key.name(key)} does not have any binds."
+                )
+                return
+            to_remove = []
+            for key_bind in key_bind_list:
+                if key_bind.bind_name == bind_name:
+                    to_remove.append(key_bind)
+            for item in to_remove:
+                key_bind_list.remove(item)
+            if not to_remove:
+                logger.warning(
+                    f" Cannot remove \'{bind_name}\';"
+                    f" bind does not exist in {pygame.key.name(key)}"
+                )
+            return
+        for key_bind_list in self.key_binds.values():
+            to_remove = []
+            for key_bind in key_bind_list:
+                if key_bind.bind_name == bind_name:
+                    to_remove.append(key_bind)
+            for item in to_remove:
+                key_bind_list.remove(item)
         return None
 
 
@@ -141,7 +182,7 @@ class KeyListener:
 
         return old_bind
 
-    def deregister(self, func: Callable, bind_name: Optional[str] = None):
+    def unbind(self, func: Callable, bind_name: Optional[str] = None):
         """
         Removes a callable from the given bind.
 
@@ -163,6 +204,7 @@ class KeyListener:
                     f"{bind_name}\' of KeyListener: {self.handle}.\n"
                     f"Function is not bound to that name."
                 )
+                return
             bind.remove(func)
         else:
             for name, bind in self.key_hooks.items():
@@ -172,6 +214,31 @@ class KeyListener:
                         f"KeyListener: {self.handle}."
                     )
                     bind.remove(func)
+
+    def clear_bind(self, bind_name: str, eliminate_bind: bool = False):
+        """
+        Clears all callables from the specified bind name
+
+        :param bind_name: _description_
+        :param eliminate_bind: _description_, defaults to False
+        """
+        if eliminate_bind:
+            bind = self.key_hooks.pop(bind_name, None)
+            if bind is None:
+                logger.warning(
+                    f" Cannot remove bind \'{bind_name}\';"
+                    " bind does not exist."
+                )
+                return
+            self.key_map.remove_bind(bind_name)
+            return
+        call_list = self.key_hooks.get(bind_name, None)
+        if call_list is None:
+            logger.warning(
+                f" Bind \'{bind_name}\' not in key registry."
+            )
+            return
+        call_list.clear()
 
     def _generate_bind(self,
                        key_bind_name: str,
