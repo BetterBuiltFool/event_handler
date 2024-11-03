@@ -141,6 +141,38 @@ class KeyListener:
 
         return old_bind
 
+    def deregister(self, func: Callable, bind_name: Optional[str] = None):
+        """
+        Removes a callable from the given bind.
+
+        :param func: A Callable previously registered with this Key Listener
+        :param bind_name: The bind to be removed from, or all instances, if
+        None. Defaults to None.
+        """
+        if bind_name:
+            bind = self.key_hooks.get(bind_name)
+            if not bind:
+                logger.warning(
+                    f"Bind name \'{bind_name}\' does not exist in KeyListener "
+                    f"\'{self.handle}\'"
+                )
+                return
+            if func not in bind:
+                logger.warning(
+                    f"Cannot remove function {func.__name__} from \'"
+                    f"{bind_name}\' of KeyListener: {self.handle}.\n"
+                    f"Function is not bound to that name."
+                )
+            bind.remove(func)
+        else:
+            for name, bind in self.key_hooks.items():
+                if func in bind:
+                    logger.info(
+                        f"Removing {func.__name__} from \'{name}\' in "
+                        f"KeyListener: {self.handle}."
+                    )
+                    bind.remove(func)
+
     def _generate_bind(self,
                        key_bind_name: str,
                        default_key: Optional[int] = None,
