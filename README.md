@@ -140,9 +140,9 @@ _For more examples, please refer to the [Documentation](https://example.com)_
 ### Event Manager
 
 ```python
-from event_handler import EventManager
+import event_handler
 
-LOCAL_MANAGER = EventManager.getEventManager("Example")
+LOCAL_MANAGER = event_handler.getEventManager("Example")
 ```
 
 This will generate an instance with the handle, "Example", which will be stored by the manager system. If another module calls for that same handle, both modules will share the same event manager. Modules can even have multiple event managers for contextualization.
@@ -179,9 +179,9 @@ This method is also useful for late binding a function.
 ### Key Listener
 
 ```python
-from event_handler import KeyListener
+import event_handler
 
-KEYBINDS = KeyListener.getKeyListener("Example")
+KEYBINDS = event_handler.getKeyListener("Example")
 ```
 
 Key Listeners are seperate from event managers and can share handles without conflict.
@@ -234,7 +234,7 @@ There are two options:
 1. Notify All
 
 ```python
-from event_handler import EventManager, KeyListener
+import event_handler
 
 import pygame
 
@@ -243,7 +243,7 @@ import pygame
 while game_is_running:
     # Frame rate handling
     for event in pygame.event.get():
-        EventManager.notify_all(event)
+        event_handler.notifyEventManagers(event)
         if (
             event.type == pygame.KEYDOWN
             or event.type == pygame.KEYUP
@@ -251,7 +251,7 @@ while game_is_running:
             # Key Listeners are only interested in these events.
             # If you know you only every want one of these type, you can omit the other.
             # Otherwise, have your functions check the event type to ensure they aren't being called twice.
-            KeyListener.notify_all(event)
+            event_handler.notifyKeyListeners(event)
     # Game Loop stuff
 
 ```
@@ -261,15 +261,15 @@ This ensures that every manager is being fed events as they happen.
 2. Direct Notification
 
 ```python
-from event_handler import EventManager, KeyListener
+import event_handler
 
 import pygame
 
 # pygame setup and initialization
 
-MANAGER = EventManager.getEventManager("Example") # Remember, the handle needs to be the same as wherever events are assigned
-MANAGER2 = EventManager.getEventManager("Example2")
-KEYBINDS = KeyListener.getKeyListener("Example")
+MANAGER = event_handler.getEventManager("Example") # Remember, the handle needs to be the same as wherever events are assigned
+MANAGER2 = event_handler.getEventManager("Example2")
+KEYBINDS = event_handler.getKeyListener("Example")
 
 while game_is_running:
     # Frame rate handling

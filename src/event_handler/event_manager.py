@@ -84,20 +84,20 @@ class EventManager:
         for listener in listeners:
             threading.Thread(target=listener, args=(event,)).start()
 
-    @classmethod
-    def notify_all(cls, event: pygame.Event):
-        """
-        Passes on the event to all know handlers.
 
-        :param event: Pygame-generated event that is being handled.
-        """
-        for event_handler in cls.handlers.values():
-            event_handler.notify(event)
+def notifyEventManagers(event: pygame.Event):
+    """
+    Passes on the event to all existing EventManagers.
 
-    @classmethod
-    def getEventManager(cls, handle: str) -> EventManager:
-        """
-        Finds the handler that matches the given handle.
-        If one does not exist, it is created.
-        """
-        return cls.handlers.setdefault(handle, EventManager(handle))
+    :param event: Pygame-generated event that is being handled.
+    """
+    for event_handler in EventManager.handlers.values():
+        event_handler.notify(event)
+
+
+def getEventManager(handle: str) -> EventManager:
+    """
+    Finds the handler that matches the given handle.
+    If one does not exist, it is created.
+    """
+    return EventManager.handlers.setdefault(handle, EventManager(handle))

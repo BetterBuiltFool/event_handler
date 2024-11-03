@@ -214,11 +214,6 @@ class KeyListener:
                 ).start()
                 # hook(event)
 
-    @classmethod
-    def notify_all(cls, event: pygame.Event):
-        for listener in cls._listeners.values():
-            listener.notify(event)
-
     def load_from_file(self,
                        filepath: Path):
         raise NotImplementedError("This feature is not yet available")
@@ -227,6 +222,16 @@ class KeyListener:
                      location: Path):
         raise NotImplementedError("This feature is not yet available")
 
-    @classmethod
-    def getKeyListener(cls, handle: str):
-        return cls._listeners.setdefault(handle, KeyListener(handle))
+
+def notifyKeyListeners(event: pygame.Event):
+    """
+    Automatically passes the event to all existing KeyListeners
+
+    :param event: Pygame event instance, of type KEYDOWN or KEYUP
+    """
+    for listener in KeyListener._listeners.values():
+        listener.notify(event)
+
+
+def getKeyListener(handle: str):
+    return KeyListener._listeners.setdefault(handle, KeyListener(handle))
