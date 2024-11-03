@@ -37,7 +37,7 @@
 <h3 align="center">Event Handler</h3>
 
   <p align="center">
-    A simple, decorator-based event system for pygame.
+    A simple, decorator-based event system for Pygame.
     <br />
     <a href="https://github.com/github_username/repo_name"><strong>Explore the docs »</strong></a>
     <br />
@@ -58,9 +58,11 @@
   <ol>
     <li>
       <a href="#about-the-project">About The Project</a>
+      <!--
       <ul>
         <li><a href="#built-with">Built With</a></li>
       </ul>
+      -->
     </li>
     <li>
       <a href="#getting-started">Getting Started</a>
@@ -89,7 +91,8 @@
 ## About The Project
 
 [![Product Name Screen Shot][product-screenshot]](https://example.com)
-Event_handler is a simple system that uses decorator syntax to register functions to pygame events, allowing those function to be fired whenever the assigned event occurs.
+
+Event Handler is a simple system that uses decorator syntax to register functions to Pygame events, allowing those function to be fired whenever the assigned event occurs.
 It also features a keybind manager, which similarly can assign functions to remappable keybinds.
 
 TODO: Remove extraneous template info
@@ -99,13 +102,13 @@ Here's a blank template to get started: To avoid retyping too much info. Do a se
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
-
+<!-->
 ### Built With
 
 * [![Python][python.org]][python-url]
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
+-->
 
 
 <!-- GETTING STARTED -->
@@ -145,11 +148,11 @@ import event_handler
 LOCAL_MANAGER = event_handler.getEventManager("Example")
 ```
 
-This will generate an instance with the handle, "Example", which will be stored by the manager system. If another module calls for that same handle, both modules will share the same event manager. Modules can even have multiple event managers for contextualization.
+This will generate an instance with the handle "Example", which will be stored by the manager system. If another module calls for that same handle, both modules will share the same event manager. Modules can even have multiple event managers to allow for control over execution context.
 
-The variable to which the event manager is assigned does not need to be written as a constant, though it is recommended for noticabiliy and avoid reassignment. The variable name has no special meaning to the event manager system.
+The variable to which the event manager is assigned does not need to be written as a constant, though it is recommended for noticabiliyy and avoiding accidental reassignment. The variable name has no special meaning to the event manager system.
 
-Functions are registered using the register decorator along with the pygame event it wants to respond to.
+Functions are registered using the register decorator along with the Pygame event type it wants to respond to.
 For example, we will use pygame.QUIT
 
 ```python
@@ -162,19 +165,20 @@ def quit_function(event: pygame.Event) -> None:
     # Quitting
 ```
 
-The function can have any syntactically allowed name, and can even be used elsewhere as a normal function.
+The function can have any syntactically valid name, and can even be used elsewhere as a normal function.
+
 The event manager will pass on the event to the function, so the function must be able to accept an event being passed to it, even if it has no use for event-specific data. This can mean using either an underscore or the *args syntax to ignore the incoming event data.
 Decorated functions cannot accept any additional positional arguments, unless using *args. The event manager will not provide any arguments beyond the event, so additional arguments must be optional, and are generally not recommended.
 
 Additionally, a function can be assigned to multiple events, although not with decorator syntax.
-
-For more information on pygame events, including a list of event type with descriptions, see [here](https://www.pygame.org/docs/ref/event.html)
 
 ```python
 LOCAL_MANAGER.register(pygame.USEREVENT)(quit_function)
 ```
 
 This method is also useful for late binding a function.
+
+For more information on Pygame events, including a list of event type with descriptions, see [here](https://www.pygame.org/docs/ref/event.html)
 
 ### Key Listener
 
@@ -201,6 +205,8 @@ def some_function(_):
 Default key specifies the initial key needed to activate the bind, and can be left blank, but this will make the bind "unbound" and unable to be called.
 With a default key set, the mod key specifies what additional mod keys (such as Alt, Control, or Shift) need to be pressed to activate the bind. If none is set, the bind will be called _regardless_ of mod keys.
 
+A Key Listener should be passing on only either pygame.KEYDOWN or pygame.KEYUP events. If all bound function will only use one of those events, you can pass only the needed event type in the main loop. Otherwise, you should have your functions checking the event type.
+
 If a bind is used for multiple functions, the first processed call is used to establish the default keys.
 
 ```python
@@ -213,7 +219,7 @@ def func2(_):
     ...
 ```
 
-In this example, pressing the "o" key will activate both functions, even though func2 asks for Ctrl+z.
+In this example, pressing the "o" key will activate both functions, even though func2 asks for Ctrl+Z.
 
 Binds may be reassigned at any time.
 
@@ -221,7 +227,7 @@ Binds may be reassigned at any time.
 KEYBINDS.rebind("example2", pygame.ESCAPE)
 ```
 
-Now, both functions will be called whenever the escape key is pressed.
+Now, both functions will be called whenever the escape key is pressed. The rebind function also returns the previous key bind information, if it needs to be captured.
 
 For more information on pygame and key handling, including a list of key names, see [here](https://www.pygame.org/docs/ref/key.html)
 
@@ -249,8 +255,6 @@ while game_is_running:
             or event.type == pygame.KEYUP
         ):
             # Key Listeners are only interested in these events.
-            # If you know you only every want one of these type, you can omit the other.
-            # Otherwise, have your functions check the event type to ensure they aren't being called twice.
             event_handler.notifyKeyListeners(event)
     # Game Loop stuff
 
@@ -289,9 +293,11 @@ The programmer must track the managers and is responsible for feeding them the e
 
 ### Concurrency
 
-In the current version, functions are called using python's threading library. This means that the called functions can be blocked, such as by using time.sleep, without blocking the rest of the program.
+In the current version, functions are called using Python's threading library. This means that the called functions can be blocked, such as by using time.sleep, without blocking the rest of the program.
 
-_However_, this comes at the cost of thread safety. These functions may be able to change state at unpredictable times, and generate race conditions. Always use cautions when dealing with concurrency, and investigate [Python's threading library](https://docs.python.org/3/library/threading.html#threading.Lock) for more info on best practices regarding concurrency.
+_However_, this comes at the cost of thread safety. These functions may be able to change state at unpredictable times, and generate race conditions. Always use caution when dealing with concurrency, and investigate [Python's threading library](https://docs.python.org/3/library/threading.html#threading.Lock) for more info on best practices regarding concurrency.
+
+Making this optional is a future feature.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
