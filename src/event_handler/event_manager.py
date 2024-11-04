@@ -14,11 +14,11 @@ class EventManager:
 
     def __init__(self, handle: str) -> None:
         self.handle = handle
-        self.listeners: dict[int, list[Callable]] = {}
+        self._listeners: dict[int, list[Callable]] = {}
 
     def register(self, event_type: int):
         def decorator(listener: Callable):
-            self.listeners.setdefault(event_type, []).append(listener)
+            self._listeners.setdefault(event_type, []).append(listener)
             return listener
         return decorator
 
@@ -32,7 +32,7 @@ class EventManager:
         removed, defaults to None
         """
         if event_type is not None:
-            call_list = self.listeners.get(event_type)
+            call_list = self._listeners.get(event_type)
             if not call_list:
                 logger.warning(
                     " No functions are registered to "
@@ -47,7 +47,7 @@ class EventManager:
                 return
             call_list.remove(func)
         else:
-            for event, call_list in self.listeners.items():
+            for event, call_list in self._listeners.items():
                 if func in call_list:
                     logger.info(
                         f" Removing function \'{func.__name__}\' from "
@@ -61,7 +61,7 @@ class EventManager:
 
         :param event_type: Pygame event type
         """
-        call_list = self.listeners.get(event_type)
+        call_list = self._listeners.get(event_type)
         if not call_list:
             logger.warning(
                 f" Cannot purge event {pygame.event.event_name(event_type)}./n"
@@ -80,7 +80,7 @@ class EventManager:
 
         :param event: _description_
         """
-        listeners = self.listeners.get(event.type, [])
+        listeners = self._listeners.get(event.type, [])
         for listener in listeners:
             threading.Thread(target=listener, args=(event,)).start()
 

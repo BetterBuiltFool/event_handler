@@ -109,7 +109,7 @@ class KeyListener:
 
     def __init__(self, handle: str) -> None:
         self.key_map = KeyMap()
-        self.key_hooks: dict[str, list[Callable]] = {}
+        self._key_hooks: dict[str, list[Callable]] = {}
         self.handle = handle
 
     def bind(
@@ -140,7 +140,7 @@ class KeyListener:
 
         def decorator(responder: Callable) -> Callable:
             # Regardless, add the responder to the bind within our hook dict
-            hooks = self.key_hooks.setdefault(
+            hooks = self._key_hooks.setdefault(
                 key_bind_name, []
             )
             if responder not in hooks:
@@ -191,7 +191,7 @@ class KeyListener:
         None. Defaults to None.
         """
         if bind_name:
-            bind = self.key_hooks.get(bind_name)
+            bind = self._key_hooks.get(bind_name)
             if not bind:
                 logger.warning(
                     f"Bind name \'{bind_name}\' does not exist in KeyListener "
@@ -207,7 +207,7 @@ class KeyListener:
                 return
             bind.remove(func)
         else:
-            for name, bind in self.key_hooks.items():
+            for name, bind in self._key_hooks.items():
                 if func in bind:
                     logger.info(
                         f"Removing {func.__name__} from \'{name}\' in "
@@ -223,7 +223,7 @@ class KeyListener:
         :param eliminate_bind: _description_, defaults to False
         """
         if eliminate_bind:
-            bind = self.key_hooks.pop(bind_name, None)
+            bind = self._key_hooks.pop(bind_name, None)
             if bind is None:
                 logger.warning(
                     f" Cannot remove bind \'{bind_name}\';"
@@ -232,7 +232,7 @@ class KeyListener:
                 return
             self.key_map.remove_bind(bind_name)
             return
-        call_list = self.key_hooks.get(bind_name, None)
+        call_list = self._key_hooks.get(bind_name, None)
         if call_list is None:
             logger.warning(
                 f" Bind \'{bind_name}\' not in key registry."
@@ -272,7 +272,7 @@ class KeyListener:
                 or key_bind.mod & mod_keys
             ):
                 continue
-            hooks = self.key_hooks.get(key_bind.bind_name, [])
+            hooks = self._key_hooks.get(key_bind.bind_name, [])
             # Pass along our event to each callable.
             for hook in hooks:
                 threading.Thread(
