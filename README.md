@@ -22,15 +22,17 @@
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
-[![***REMOVED***][license-shield]][license-url]
+[![MIT License][license-shield]][license-url]
+<!--
 [![LinkedIn][linkedin-shield]][linkedin-url]
+-->
 
 
 
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-  <a href="https://github.com/github_username/repo_name">
+  <a href="https://github.com/BetterBuiltFool/event_handler">
     <img src="images/logo.png" alt="Logo" width="80" height="80">
   </a>
 
@@ -39,14 +41,14 @@
   <p align="center">
     A simple, decorator-based event system for Pygame.
     <br />
-    <a href="https://github.com/github_username/repo_name"><strong>Explore the docs »</strong></a>
+    <a href="https://github.com/BetterBuiltFool/event_handler"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-    <a href="https://github.com/github_username/repo_name">View Demo</a>
+    <a href="https://github.com/BetterBuiltFool/event_handler">View Demo</a>
     ·
-    <a href="https://github.com/github_username/repo_name/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
+    <a href="https://github.com/BetterBuiltFool/event_handler/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
     ·
-    <a href="https://github.com/github_username/repo_name/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
+    <a href="https://github.com/BetterBuiltFool/event_handler/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
   </p>
 </div>
 
@@ -90,19 +92,23 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
+<!--
 [![Product Name Screen Shot][product-screenshot]](https://example.com)
+-->
 
 Event Handler is a simple system that uses decorator syntax to register functions to Pygame events, allowing those function to be fired whenever the assigned event occurs.
 It also features a keybind manager, which similarly can assign functions to remappable keybinds.
 
+<!--
 TODO: Remove extraneous template info
 
 Here's a blank template to get started: To avoid retyping too much info. Do a search and replace with your text editor for the following: `github_username`, `repo_name`, `twitter_handle`, `linkedin_username`, `email_client`, `email`, `project_title`, `project_description`
+-->
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
-<!-->
+<!--
 ### Built With
 
 * [![Python][python.org]][python-url]
@@ -314,7 +320,7 @@ Making this optional is a future feature.
     - [ ] Nested Feature
 -->
 
-See the [open issues](https://github.com/github_username/repo_name/issues) for a full list of proposed features (and known issues).
+See the [open issues](https://github.com/BetterBuiltFool/event_handler/issues) for a full list of proposed features (and known issues).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -339,8 +345,8 @@ Don't forget to give the project a star! Thanks again!
 
 ### Top contributors:
 
-<a href="https://github.com/github_username/repo_name/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=github_username/repo_name" alt="contrib.rocks image" />
+<a href="https://github.com/BetterBuiltFool/event_handler/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=BetterBuiltFool/event_handler" alt="contrib.rocks image" />
 </a>
 -->
 
@@ -349,7 +355,7 @@ Don't forget to give the project a star! Thanks again!
 <!-- LICENSE -->
 ## License
 
-Distributed under the ***REMOVED***. See `LICENSE.txt` for more information.
+Distributed under the MIT License. See `LICENSE.txt` for more information.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -358,9 +364,9 @@ Distributed under the ***REMOVED***. See `LICENSE.txt` for more information.
 <!-- CONTACT -->
 ## Contact
 
-Your Name - [@twitter_handle](https://twitter.com/twitter_handle) - email@email_client.com
+Better Built Fool - betterbuiltfool@gmail.com <!-- - [@twitter_handle](https://twitter.com/twitter_handle) - email@email_client.com
 
-Project Link: [https://github.com/github_username/repo_name](https://github.com/github_username/repo_name)
+Project Link: [https://github.com/BetterBuiltFool/event_handler](https://github.com/BetterBuiltFool/event_handler)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -379,16 +385,16 @@ Project Link: [https://github.com/github_username/repo_name](https://github.com/
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[contributors-shield]: https://img.shields.io/github/contributors/github_username/repo_name.svg?style=for-the-badge
-[contributors-url]: https://github.com/github_username/repo_name/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/github_username/repo_name.svg?style=for-the-badge
-[forks-url]: https://github.com/github_username/repo_name/network/members
-[stars-shield]: https://img.shields.io/github/stars/github_username/repo_name.svg?style=for-the-badge
-[stars-url]: https://github.com/github_username/repo_name/stargazers
-[issues-shield]: https://img.shields.io/github/issues/github_username/repo_name.svg?style=for-the-badge
-[issues-url]: https://github.com/github_username/repo_name/issues
-[license-shield]: https://img.shields.io/github/license/github_username/repo_name.svg?style=for-the-badge
-[license-url]: https://github.com/github_username/repo_name/blob/master/LICENSE.txt
+[contributors-shield]: https://img.shields.io/github/contributors/BetterBuiltFool/event_handler.svg?style=for-the-badge
+[contributors-url]: https://github.com/BetterBuiltFool/event_handler/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/BetterBuiltFool/event_handler.svg?style=for-the-badge
+[forks-url]: https://github.com/BetterBuiltFool/event_handler/network/members
+[stars-shield]: https://img.shields.io/github/stars/BetterBuiltFool/event_handler.svg?style=for-the-badge
+[stars-url]: https://github.com/BetterBuiltFool/event_handler/stargazers
+[issues-shield]: https://img.shields.io/github/issues/BetterBuiltFool/event_handler.svg?style=for-the-badge
+[issues-url]: https://github.com/BetterBuiltFool/event_handler/issues
+[license-shield]: https://img.shields.io/github/license/BetterBuiltFool/event_handler.svg?style=for-the-badge
+[license-url]: https://github.com/BetterBuiltFool/event_handler/blob/main/LICENSE
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://linkedin.com/in/linkedin_username
 [product-screenshot]: images/screenshot.png
