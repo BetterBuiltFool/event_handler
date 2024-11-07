@@ -8,7 +8,7 @@ from typing import Callable, NamedTuple, Optional
 
 import pygame
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 KeyBind = NamedTuple("KeyBind",
                      [("bind_name", str),
@@ -24,7 +24,7 @@ class KeyMap:
 
     def rebind(self,
                new_key_bind: KeyBind,
-               new_key: Optional[int] = None):
+               new_key: Optional[int] = None) -> None:
         """
         Takes the given keybind, unbinds it from its current key, and rebinds
         it to the given key. If no key is given, it is put under None, meaning
@@ -34,13 +34,15 @@ class KeyMap:
         :param new_key: Pygame key id, defaults to None
         """
         for key_bind_list in self.key_binds.values():
-            binds_to_remove = []
+            binds_to_remove: list[KeyBind] = []
+            key_bind: KeyBind
             for key_bind in key_bind_list:
                 if key_bind.bind_name == new_key_bind.bind_name:
                     # Can't directly remove in the loop, could skip one.
                     binds_to_remove.append(key_bind)
-            for bind in binds_to_remove:
-                key_bind_list.remove(bind)
+            removed_bind: KeyBind
+            for removed_bind in binds_to_remove:
+                key_bind_list.remove(removed_bind)
 
         self.key_binds.setdefault(new_key, []).append(new_key_bind)
 
@@ -57,6 +59,9 @@ class KeyMap:
         :return: Tuple containing two ints, first representing the number for
         a pygame key, the second a bitmask int representing pygame mod keys.
         """
+        key: int | None
+        key_bind_list: list[KeyBind]
+        key_bind: KeyBind
         for key, key_bind_list in self.key_binds.items():
             for key_bind in key_bind_list:
                 if key_bind.bind_name == bind_name:
@@ -66,7 +71,7 @@ class KeyMap:
     def remove_bind(self,
                     bind_name: str,
                     key: Optional[int] = None
-                    ):
+                    ) -> None:
         """
         Eliminates the specified bind from the specified key, or all instances
         if no key is specified.
@@ -74,6 +79,7 @@ class KeyMap:
         :param bind_name: Name of the bind being removed
         :param key: Integer of pygame key code to search, defaults to None
         """
+        key_bind_list: list[KeyBind] | None
         if key is not None:
             key_bind_list = self.key_binds.get(key, None)
             if not key_bind_list:
@@ -82,7 +88,7 @@ class KeyMap:
                     f" {pygame.key.name(key)} does not have any binds."
                 )
                 return
-            to_remove = []
+            to_remove: list[KeyBind] = []
             for key_bind in key_bind_list:
                 if key_bind.bind_name == bind_name:
                     to_remove.append(key_bind)
@@ -108,9 +114,9 @@ class KeyListener:
     _listeners: dict[str, KeyListener] = {}
 
     def __init__(self, handle: str) -> None:
-        self.key_map = KeyMap()
+        self.key_map: KeyMap = KeyMap()
         self._key_hooks: dict[str, list[Callable]] = {}
-        self.handle = handle
+        self.handle: str = handle
 
     def bind(
         self,
@@ -140,7 +146,7 @@ class KeyListener:
 
         def decorator(responder: Callable) -> Callable:
             # Regardless, add the responder to the bind within our hook dict
-            hooks = self._key_hooks.setdefault(
+            hooks: list[Callable] = self._key_hooks.setdefault(
                 key_bind_name, []
             )
             if responder not in hooks:
@@ -182,7 +188,7 @@ class KeyListener:
 
         return old_bind
 
-    def unbind(self, func: Callable, bind_name: Optional[str] = None):
+    def unbind(self, func: Callable, bind_name: Optional[str] = None) -> None:
         """
         Removes a callable from the given bind.
 
@@ -215,7 +221,7 @@ class KeyListener:
                     )
                     bind.remove(func)
 
-    def clear_bind(self, bind_name: str, eliminate_bind: bool = False):
+    def clear_bind(self, bind_name: str, eliminate_bind: bool = False) -> None:
         """
         Clears all callables from the specified bind name
 
@@ -243,7 +249,7 @@ class KeyListener:
     def _generate_bind(self,
                        key_bind_name: str,
                        default_key: Optional[int] = None,
-                       default_mod: int = pygame.KMOD_NONE):
+                       default_mod: int = pygame.KMOD_NONE) -> None:
         """
         Looks for a bind matching the given name.
         Creates the bind if it does not exist.
@@ -261,7 +267,7 @@ class KeyListener:
                 []
             ).append(KeyBind(bind_name=key_bind_name, mod=default_mod))
 
-    def notify(self, event: pygame.Event):
+    def notify(self, event: pygame.Event) -> None:
         key_changed = event.key
         mod_keys = event.mod
         key_binds = self.key_map.key_binds.get(key_changed, [])
@@ -282,15 +288,15 @@ class KeyListener:
                 # hook(event)
 
     def load_from_file(self,
-                       filepath: Path):
+                       filepath: Path) -> None:
         raise NotImplementedError("This feature is not yet available")
 
     def save_to_file(self,
-                     location: Path):
+                     location: Path) -> None:
         raise NotImplementedError("This feature is not yet available")
 
 
-def notifyKeyListeners(event: pygame.Event):
+def notifyKeyListeners(event: pygame.Event) -> None:
     """
     Automatically passes the event to all existing KeyListeners
 
@@ -300,5 +306,5 @@ def notifyKeyListeners(event: pygame.Event):
         listener.notify(event)
 
 
-def getKeyListener(handle: str):
+def getKeyListener(handle: str) -> KeyListener:
     return KeyListener._listeners.setdefault(handle, KeyListener(handle))

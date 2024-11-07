@@ -1,6 +1,7 @@
 import pathlib
 import sys
 import threading
+from typing import Callable, cast
 import unittest
 
 import pygame
@@ -16,13 +17,13 @@ from src.event_handler.key_manager import (  # noqa: E402
 
 class TestKeyMap(unittest.TestCase):
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.keymap = KeyMap()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.keymap.key_binds.clear()
 
-    def test_rebind(self):
+    def test_rebind(self) -> None:
         bind_name = "test_bind"
         start_key = pygame.K_9
         start_mod = pygame.KMOD_ALT
@@ -36,10 +37,22 @@ class TestKeyMap(unittest.TestCase):
 
         self.keymap.rebind(test_bind, new_key)
 
-        self.assertNotIn(test_bind, self.keymap.key_binds.get(start_key))
-        self.assertIn(test_bind, self.keymap.key_binds.get(new_key))
+        self.assertNotIn(
+            test_bind,
+            cast(
+                list[KeyBind],
+                self.keymap.key_binds.get(start_key)
+            )
+        )
+        self.assertIn(
+            test_bind,
+            cast(
+                list[KeyBind],
+                self.keymap.key_binds.get(new_key)
+            )
+        )
 
-    def test_get_bound_key(self):
+    def test_get_bound_key(self) -> None:
         bind_name = "test_bind"
         start_key = pygame.K_9
         start_mod = pygame.KMOD_ALT
@@ -49,13 +62,16 @@ class TestKeyMap(unittest.TestCase):
             test_bind
         )
 
-        key, mod = self.keymap.get_bound_key(bind_name)
+        key, mod = cast(
+            tuple[int | None, int],
+            self.keymap.get_bound_key(bind_name)
+        )
         empty = self.keymap.get_bound_key("unbound_name")
         self.assertEqual(key, start_key)
         self.assertEqual(start_mod, mod)
         self.assertIsNone(empty)
 
-    def test_remove_bind(self):
+    def test_remove_bind(self) -> None:
         bind_name = "test_bind"
         start_key = pygame.K_9
         start_mod = pygame.KMOD_ALT
@@ -73,26 +89,50 @@ class TestKeyMap(unittest.TestCase):
 
         self.keymap.remove_bind(bind_name, start_key)
 
-        self.assertNotIn(test_bind, self.keymap.key_binds.get(start_key))
-        self.assertIn(test_bind, self.keymap.key_binds.get(new_key))
+        self.assertNotIn(
+            test_bind,
+            cast(
+                list[KeyBind],
+                self.keymap.key_binds.get(start_key)
+            )
+        )
+        self.assertIn(
+            test_bind,
+            cast(
+                list[KeyBind],
+                self.keymap.key_binds.get(new_key)
+            )
+        )
 
         self.keymap.remove_bind(bind_name)
 
-        self.assertNotIn(test_bind, self.keymap.key_binds.get(start_key))
-        self.assertNotIn(test_bind, self.keymap.key_binds.get(new_key))
+        self.assertNotIn(
+            test_bind,
+            cast(
+                list[KeyBind],
+                self.keymap.key_binds.get(start_key)
+            )
+        )
+        self.assertNotIn(
+            test_bind,
+            cast(
+                list[KeyBind],
+                self.keymap.key_binds.get(new_key)
+            )
+        )
 
 
 class TestKeyListener(unittest.TestCase):
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.key_listener = getKeyListener("TestCase")
 
-    def tearDown(self):
-        self.key_listener.key_hooks.clear()
+    def tearDown(self) -> None:
+        self.key_listener._key_hooks.clear()
 
-    def test_bind(self):
+    def test_bind(self) -> None:
 
-        def test_func(_):
+        def test_func(_) -> None:
             pass
 
         self.key_listener.bind(
@@ -110,16 +150,34 @@ class TestKeyListener(unittest.TestCase):
             "test_bind2"
         )(test_func)
 
-        self.assertIn("test_bind0", self.key_listener.key_hooks.keys())
-        self.assertIn("test_bind1", self.key_listener.key_hooks.keys())
-        self.assertIn("test_bind2", self.key_listener.key_hooks.keys())
-        self.assertIn(test_func, self.key_listener.key_hooks.get("test_bind0"))
-        self.assertIn(test_func, self.key_listener.key_hooks.get("test_bind1"))
-        self.assertIn(test_func, self.key_listener.key_hooks.get("test_bind2"))
+        self.assertIn("test_bind0", self.key_listener._key_hooks.keys())
+        self.assertIn("test_bind1", self.key_listener._key_hooks.keys())
+        self.assertIn("test_bind2", self.key_listener._key_hooks.keys())
+        self.assertIn(
+            test_func,
+            cast(
+                list[Callable],
+                self.key_listener._key_hooks.get("test_bind0")
+            )
+        )
+        self.assertIn(
+            test_func,
+            cast(
+                list[Callable],
+                self.key_listener._key_hooks.get("test_bind1")
+            )
+        )
+        self.assertIn(
+            test_func,
+            cast(
+                list[Callable],
+                self.key_listener._key_hooks.get("test_bind2")
+            )
+        )
 
-    def test_unbind(self):
+    def test_unbind(self) -> None:
 
-        def test_func(_):
+        def test_func(_) -> None:
             pass
 
         self.key_listener.bind(
@@ -139,17 +197,34 @@ class TestKeyListener(unittest.TestCase):
 
         self.key_listener.unbind(test_func, "test_bind0")
 
-        self.assertNotIn(test_func,
-                         self.key_listener.key_hooks.get("test_bind0"))
-        self.assertIn(test_func, self.key_listener.key_hooks.get("test_bind1"))
-        self.assertIn(test_func, self.key_listener.key_hooks.get("test_bind2"))
+        self.assertNotIn(
+            test_func,
+            cast(
+                list[Callable],
+                self.key_listener._key_hooks.get("test_bind0")
+            )
+        )
+        self.assertIn(
+            test_func,
+            cast(
+                list[Callable],
+                self.key_listener._key_hooks.get("test_bind1")
+            )
+        )
+        self.assertIn(
+            test_func,
+            cast(
+                list[Callable],
+                self.key_listener._key_hooks.get("test_bind2")
+            )
+        )
 
-    def test_clear_bind(self):
+    def test_clear_bind(self) -> None:
 
-        def test_func(_):
+        def test_func(_) -> None:
             pass
 
-        def test_func2(_):
+        def test_func2(_) -> None:
             pass
 
         self.key_listener.bind(
@@ -170,20 +245,26 @@ class TestKeyListener(unittest.TestCase):
         self.key_listener.clear_bind("test_bind0")
 
         # No assertEmpty, so this will have to do.
-        self.assertFalse(self.key_listener.key_hooks.get("test_bind0"))
-        self.assertIsNotNone(self.key_listener.key_hooks.get("test_bind0"))
-        self.assertIn(test_func, self.key_listener.key_hooks.get("test_bind1"))
+        self.assertFalse(self.key_listener._key_hooks.get("test_bind0"))
+        self.assertIsNotNone(self.key_listener._key_hooks.get("test_bind0"))
+        self.assertIn(
+            test_func,
+            cast(
+                list[Callable],
+                self.key_listener._key_hooks.get("test_bind1")
+            )
+        )
 
         self.key_listener.clear_bind("test_bind0", True)
 
-        self.assertIsNone(self.key_listener.key_hooks.get("test_bind0"))
+        self.assertIsNone(self.key_listener._key_hooks.get("test_bind0"))
 
-    def test_notify(self):
+    def test_notify(self) -> None:
 
         example_var = False
         lock = threading.Lock()
 
-        def test_func(_):
+        def test_func(_) -> None:
             nonlocal example_var
             lock.acquire()
             example_var = True

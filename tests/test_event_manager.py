@@ -1,6 +1,7 @@
 import pathlib
 import sys
 import threading
+from typing import Callable, cast
 import unittest
 
 import pygame
@@ -12,28 +13,31 @@ from src.event_handler import getEventManager  # noqa: E402
 
 class TestEventManager(unittest.TestCase):
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.event_manager = getEventManager("TestCase")
         self.test_event = pygame.USEREVENT+1
         self.test_event2 = pygame.USEREVENT+2
 
-    def tearDown(self):
-        self.event_manager.listeners.clear()
+    def tearDown(self) -> None:
+        self.event_manager._listeners.clear()
 
-    def test_register(self):
+    def test_register(self) -> None:
 
-        def test_func():
+        def test_func() -> None:
             pass
 
         self.event_manager.register(self.test_event)(test_func)
         self.assertIn(
             test_func,
-            self.event_manager.listeners.get(self.test_event)
+            cast(
+                list[Callable],
+                self.event_manager._listeners.get(self.test_event)
+            )
         )
 
-    def test_deregister(self):
+    def test_deregister(self) -> None:
 
-        def test_func(_):
+        def test_func(_) -> None:
             pass
 
         self.event_manager.register(self.test_event)(test_func)
@@ -41,16 +45,22 @@ class TestEventManager(unittest.TestCase):
         self.event_manager.deregister(test_func, self.test_event)
         self.assertNotIn(
             test_func,
-            self.event_manager.listeners.get(self.test_event)
+            cast(
+                list[Callable],
+                self.event_manager._listeners.get(self.test_event)
+            )
         )
         self.assertIn(
             test_func,
-            self.event_manager.listeners.get(self.test_event2)
+            cast(
+                list[Callable],
+                self.event_manager._listeners.get(self.test_event2)
+            )
         )
 
-    def test_deregister_all(self):
+    def test_deregister_all(self) -> None:
 
-        def test_func(_):
+        def test_func(_) -> None:
             pass
 
         self.event_manager.register(self.test_event)(test_func)
@@ -58,19 +68,25 @@ class TestEventManager(unittest.TestCase):
         self.event_manager.deregister(test_func)
         self.assertNotIn(
             test_func,
-            self.event_manager.listeners.get(self.test_event)
+            cast(
+                list[Callable],
+                self.event_manager._listeners.get(self.test_event)
+            )
         )
         self.assertNotIn(
             test_func,
-            self.event_manager.listeners.get(self.test_event2)
+            cast(
+                list[Callable],
+                self.event_manager._listeners.get(self.test_event2)
+            )
         )
 
-    def test_event_purge(self):
+    def test_event_purge(self) -> None:
 
-        def test_func(_):
+        def test_func(_) -> None:
             pass
 
-        def test_func2(_):
+        def test_func2(_) -> None:
             pass
 
         self.event_manager.register(self.test_event)(test_func)
@@ -81,28 +97,40 @@ class TestEventManager(unittest.TestCase):
         # Verify both have been cleared from test_event
         self.assertNotIn(
             test_func,
-            self.event_manager.listeners.get(self.test_event)
+            cast(
+                list[Callable],
+                self.event_manager._listeners.get(self.test_event)
+            )
         )
         self.assertNotIn(
             test_func2,
-            self.event_manager.listeners.get(self.test_event)
+            cast(
+                list[Callable],
+                self.event_manager._listeners.get(self.test_event)
+            )
         )
         # But both need to remain in test_event2
         self.assertIn(
             test_func,
-            self.event_manager.listeners.get(self.test_event2)
+            cast(
+                list[Callable],
+                self.event_manager._listeners.get(self.test_event2)
+            )
         )
         self.assertIn(
             test_func2,
-            self.event_manager.listeners.get(self.test_event2)
+            cast(
+                list[Callable],
+                self.event_manager._listeners.get(self.test_event2)
+            )
         )
 
-    def test_notify(self):
+    def test_notify(self) -> None:
 
         example_var = False
         lock = threading.Lock()
 
-        def test_func(_):
+        def test_func(_) -> None:
             nonlocal example_var
             lock.acquire()
             example_var = True
