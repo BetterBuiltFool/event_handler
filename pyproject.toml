@@ -1,6 +1,6 @@
 [project]
 name = "event_handler"
-version = "0.1.0"
+dynamic = ["version"]
 authors = [
     { name="BetterBuiltFool", email="NoneYet@notavailable.com"}
 ]
