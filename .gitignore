@@ -161,3 +161,4 @@ cython_debug/
 #.idea/
 
 event_handler.code-workspace
+misc_testing.py
