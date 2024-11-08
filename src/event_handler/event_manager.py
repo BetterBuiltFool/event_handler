@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import functools
 import logging
 import threading
-from typing import Callable, Optional
+from typing import Callable, Optional, Type
 
 import pygame
 
@@ -15,6 +16,8 @@ class EventManager:
     def __init__(self, handle: str) -> None:
         self.handle: str = handle
         self._listeners: dict[int, list[Callable]] = {}
+        self._class_listeners: dict[int, list[tuple[Callable, object]]] = {}
+        self._class_listener_instances: dict[Type[object], list[object]] = {}
 
     def register(self, event_type: int) -> Callable:
         def decorator(listener: Callable) -> Callable:
@@ -61,6 +64,92 @@ class EventManager:
                     f"{pygame.event.event_name(event)}"
                 )
                 call_list.remove(func)
+
+    def register_class(self, cls: Type[object]) -> Type[object]:
+        """
+        Prepares a class for event handling.
+        This will hijack the class's init method to push its instances into
+        the assigned event manager.
+
+        It will also go through and clean up the assigned methods.
+        """
+        # Mypy will throw an error here because it thinks this is illegal.
+        # Hijacking an init is illegal? Guess I'm going to jail then.
+        cls.__init__ = self._modify_init(cls.__init__)  # type: ignore
+        # Add all of the tagged methods to the callables list
+        logger.debug("Checking for marked methods")
+        for _, method in cls.__dict__.items():
+            if not hasattr(method, "_assigned_doers"):
+                continue
+            logger.debug("Found marked method")
+            assigned_doers: list[tuple[EventManager, int]] = getattr(
+                method,
+                "_assigned_managers",
+                []
+            )
+            for index, (manager, event_type) in enumerate(assigned_doers):
+                logger.debug(f"Found assigned doer: {manager}")
+                if manager is not self:
+                    continue
+                logger.debug("Found method assigned to self. Registering.")
+                self._class_listeners.setdefault(
+                    event_type,
+                    []
+                ).append((method, cls))
+                assigned_doers.pop(index)
+                break
+            if len(assigned_doers) == 0:
+                delattr(method, "_assigned_doers")
+
+        return cls
+
+    def _modify_init(self, init: Callable) -> Callable:
+        """
+        Extracts the class and instance being generated, and puts them into a
+        dict, so that the method can be called upon it
+
+        :param init: The initializer function of a class being registered.
+        :return: The modified init function
+        """
+        functools.wraps(init)  # Needs this
+
+        def wrapper(*args, **kwds):
+            # args[0] of a non-class, non-static method is the instance
+            # This is called whenever the class is instantiated,
+            # and the instance is extracted and can be stored
+            instance = args[0]
+            cls = instance.__class__
+            # No need to check for the instance, each only calls this once
+            self._class_listener_instances.setdefault(cls, []).append(instance)
+            logger.debug(f"Extracted instance {instance} from {cls}")
+            return init(*args, **kwds)
+        return wrapper
+
+    def register_method(self, event_type: int) -> Callable:
+        """
+        Allows for
+
+        :param event_type: _description_
+        :return: _description_
+        """
+        def decorator(method: Callable) -> Callable:
+            assigned_managers: list[tuple[EventManager, int]] = []
+            if hasattr(method, "_assigned_managers"):
+                assigned_managers = getattr(method, "_assigned_managers", [])
+            assigned_managers.append((self, event_type))
+            setattr(method, "_assigned_managers", assigned_managers)
+            print(getattr(method, "_assigned_managers", []))
+            return method
+        return decorator
+
+    def deregister_class(self, cls: Type[object]):
+        """
+        Clears all instances and listeners that belong to the supplied class.
+
+        :param cls: The cls being deregistered.
+        :raises KeyError: If cls is not contained in the class listeners, this
+        error will be raised.
+        """
 
     def purge_event(self, event_type: int) -> None:
         """
