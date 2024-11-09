@@ -184,6 +184,44 @@ LOCAL_MANAGER.register(pygame.USEREVENT)(quit_function)
 
 This method is also useful for late binding a function.
 
+
+Event managers can also be used on objects!
+
+```python
+@LOCAL_MANAGER.register_class
+class TestClass:
+
+    @LOCAL_MANAGER.register_method(pygame.QUIT)
+    def sample_method(self, event: pygame.Event) -> None:
+        # Do
+        # The
+        # Things
+```
+
+With this, the event manager will track all instances of TestClass, and whenever the assigned event is called, it will call the registered methods on all instances. As with regular registered callables, it must be able to accept the event as an argument, but also uses self to allow access to the instance within the function.
+
+Every manager that registers a method in a class should also register that class. If a manager registers a method but not the class, the method cannot be called, and will have a dangling attribute left over from the registration process.
+
+```python
+@LOCAL_MANAGER.register_class
+class TestClass:
+
+    @LOCAL_MANAGER.register_method(pygame.QUIT)
+    def sample_method(self, event: pygame.Event) -> None:
+        # Do
+        # The
+        # Things
+
+    @OTHER_MANAGER.register_method(pygame.QUIT)  # This will not work as expected
+    def other_sample_method(self, event: pygame.Event) -> None:
+        # Do
+        # Other
+        # Things
+```
+
+Methods cannot be late registered, unlike regular callables. Classes can be late registered, but the event manager will not pick up on existing instances.
+
+
 For more information on Pygame events, including a list of event type with descriptions, see [here](https://www.pygame.org/docs/ref/event.html)
 
 ### Key Listener
@@ -209,9 +247,20 @@ def some_function(_):
 ```
 
 Default key specifies the initial key needed to activate the bind, and can be left blank, but this will make the bind "unbound" and unable to be called.
-With a default key set, the mod key specifies what additional mod keys (such as Alt, Control, or Shift) need to be pressed to activate the bind. If none is set, the bind will be called _regardless_ of mod keys.
+With a default key set, the mod key specifies what additional mod keys (such as Alt, Control, or Shift) need to be pressed to activate the bind. If none is set, the bind will be called _regardless_ of mod keys. If pygame.KMOD_NONE is used, the bind will fire _only_ if no mod keys are pressed.
 
-A Key Listener should be passing on only either pygame.KEYDOWN or pygame.KEYUP events. If all bound function will only use one of those events, you can pass only the needed event type in the main loop. Otherwise, you should have your functions checking the event type.
+Optionally, an event may be specified. By default, it uses key down. The callable will be called only when the required function is called.
+
+```python
+@KEYBINDS.bind("example_name", pygame.K_p, pygame.KMOD_SHIFT, pygame.KEYUP)
+def some_function(_):
+    # Does
+    # Something
+    # When
+    # Shift+P
+    # Is pressed
+```
+
 
 If a bind is used for multiple functions, the first processed call is used to establish the default keys.
 
@@ -256,12 +305,7 @@ while game_is_running:
     # Frame rate handling
     for event in pygame.event.get():
         event_handler.notifyEventManagers(event)
-        if (
-            event.type == pygame.KEYDOWN
-            or event.type == pygame.KEYUP
-        ):
-            # Key Listeners are only interested in these events.
-            event_handler.notifyKeyListeners(event)
+        event_handler.notifyKeyListeners(event)
     # Game Loop stuff
 
 ```
@@ -286,16 +330,13 @@ while game_is_running:
     for event in pygame.event.get():
         MANAGER.notify(event)
         MANAGER2.notify(event)
-        if (
-            event.type == pygame.KEYDOWN
-            or event.type == pygame.KEYUP
-        ):
-            KEYBINDS.notify(event)
+        KEYBINDS.notify(event)
     # Game Loop stuff
 
 ```
 
 The programmer must track the managers and is responsible for feeding them the events. This allows greater control over if and when a given manager is activated.
+For example, it may be desirable to have a manager that handles menu functions, and another gameplay functions. This way, the game loop can test for game state, and run only the menu functions when in menu, and only gameplay functions while playing.
 
 ### Concurrency
 
