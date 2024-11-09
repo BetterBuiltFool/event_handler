@@ -77,22 +77,25 @@ class EventManager:
         # Add all of the tagged methods to the callables list
         logger.debug("Checking for marked methods")
         for _, method in cls.__dict__.items():
-            if not hasattr(method, "_assigned_doers"):
+            if not hasattr(method, "_assigned_managers"):
                 continue
             logger.debug("Found marked method")
             assigned_doers: list[tuple[EventManager, int]] = getattr(
                 method, "_assigned_managers", []
             )
             for index, (manager, event_type) in enumerate(assigned_doers):
-                logger.debug(f"Found assigned doer: {manager}")
+                logger.debug(f"Found assigned manager: {manager}")
                 if manager is not self:
                     continue
                 logger.debug("Found method assigned to self. Registering.")
+                logger.debug(
+                    f"Registering {method} to {pygame.event.event_name(event_type)}"
+                )
                 self._class_listeners.setdefault(event_type, []).append((method, cls))
                 assigned_doers.pop(index)
                 break
             if len(assigned_doers) == 0:
-                delattr(method, "_assigned_doers")
+                delattr(method, "_assigned_managers")
 
         return cls
 
