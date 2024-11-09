@@ -177,6 +177,10 @@ class EventManager:
         """
         Wrapper that marks the method for registration when the class is registered.
 
+        The method's class should be registered with all event managers that have
+        registered a method in that class. Failure to do so will leave a dangling
+        attribute on those methods.
+
         :param event_type: Pygame event type that will call the assigned method.
         """
 
@@ -211,6 +215,7 @@ class EventManager:
         # Remove methods from events
         for method in self._assigned_classes.get(cls, []):
             self.deregister_method(method)
+        self._assigned_classes.pop(cls)
 
     def deregister_method(self, method: Callable):
         """
@@ -222,7 +227,12 @@ class EventManager:
         for event_type in self._class_listener_events.get(method, []):
             listener_sets = self._class_listeners.get(event_type, [])
             # Retain only the listeners that are not the method
-            filter(lambda listener_set: method is not listener_set[0], listener_sets)
+            listener_sets = list(
+                filter(
+                    lambda listener_set: method is not listener_set[0], listener_sets
+                )
+            )
+            self._class_listeners.update({event_type: listener_sets})
         self._class_listener_events.pop(method)
 
     def purge_event(self, event_type: int) -> None:
