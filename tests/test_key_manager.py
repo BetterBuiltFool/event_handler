@@ -96,26 +96,40 @@ class TestKeyListener(unittest.TestCase):
         def test_func(_) -> None:
             pass
 
-        self.key_listener.bind("test_bind0", pygame.K_0, pygame.KMOD_ALT)(test_func)
+        self.key_listener.bind(
+            "test_bind0", pygame.KEYDOWN, pygame.K_0, pygame.KMOD_ALT
+        )(test_func)
 
-        self.key_listener.bind("test_bind1", pygame.K_1)(test_func)
+        self.key_listener.bind("test_bind1", pygame.KEYDOWN, pygame.K_1)(test_func)
 
-        self.key_listener.bind("test_bind2")(test_func)
+        self.key_listener.bind("test_bind2", pygame.KEYDOWN)(test_func)
 
         self.assertIn("test_bind0", self.key_listener._key_hooks.keys())
         self.assertIn("test_bind1", self.key_listener._key_hooks.keys())
         self.assertIn("test_bind2", self.key_listener._key_hooks.keys())
+
+        bind0_dict = self.key_listener._key_hooks.get("test_bind0")
+        assert bind0_dict
+        bind0_list = bind0_dict.get(pygame.KEYDOWN)
         self.assertIn(
             test_func,
-            cast(list[Callable], self.key_listener._key_hooks.get("test_bind0")),
+            cast(list[Callable], bind0_list),
         )
+
+        bind1_dict = self.key_listener._key_hooks.get("test_bind1")
+        assert bind1_dict
+        bind1_list = bind1_dict.get(pygame.KEYDOWN)
         self.assertIn(
             test_func,
-            cast(list[Callable], self.key_listener._key_hooks.get("test_bind1")),
+            cast(list[Callable], bind1_list),
         )
+
+        bind2_dict = self.key_listener._key_hooks.get("test_bind2")
+        assert bind2_dict
+        bind2_list = bind2_dict.get(pygame.KEYDOWN)
         self.assertIn(
             test_func,
-            cast(list[Callable], self.key_listener._key_hooks.get("test_bind2")),
+            cast(list[Callable], bind2_list),
         )
 
     def test_unbind(self) -> None:
@@ -123,25 +137,38 @@ class TestKeyListener(unittest.TestCase):
         def test_func(_) -> None:
             pass
 
-        self.key_listener.bind("test_bind0", pygame.K_0, pygame.KMOD_ALT)(test_func)
+        self.key_listener.bind(
+            "test_bind0", pygame.KEYDOWN, pygame.K_0, pygame.KMOD_ALT
+        )(test_func)
 
-        self.key_listener.bind("test_bind1", pygame.K_1)(test_func)
+        self.key_listener.bind("test_bind1", pygame.KEYDOWN, pygame.K_1)(test_func)
 
-        self.key_listener.bind("test_bind2")(test_func)
+        self.key_listener.bind("test_bind2", pygame.KEYDOWN, pygame.KEYDOWN)(test_func)
 
         self.key_listener.unbind(test_func, "test_bind0")
 
+        bind0_dict = self.key_listener._key_hooks.get("test_bind0")
+        assert bind0_dict
+        bind0_list = bind0_dict.get(pygame.KEYDOWN)
         self.assertNotIn(
             test_func,
-            cast(list[Callable], self.key_listener._key_hooks.get("test_bind0")),
+            cast(list[Callable], bind0_list),
         )
+
+        bind1_dict = self.key_listener._key_hooks.get("test_bind1")
+        assert bind1_dict
+        bind1_list = bind1_dict.get(pygame.KEYDOWN)
         self.assertIn(
             test_func,
-            cast(list[Callable], self.key_listener._key_hooks.get("test_bind1")),
+            cast(list[Callable], bind1_list),
         )
+
+        bind2_dict = self.key_listener._key_hooks.get("test_bind2")
+        assert bind2_dict
+        bind2_list = bind2_dict.get(pygame.KEYDOWN)
         self.assertIn(
             test_func,
-            cast(list[Callable], self.key_listener._key_hooks.get("test_bind2")),
+            cast(list[Callable], bind2_list),
         )
 
     def test_clear_bind(self) -> None:
@@ -152,20 +179,25 @@ class TestKeyListener(unittest.TestCase):
         def test_func2(_) -> None:
             pass
 
-        self.key_listener.bind("test_bind0", pygame.K_0, pygame.KMOD_ALT)(test_func)
+        self.key_listener.bind(
+            "test_bind0", pygame.KEYDOWN, pygame.K_0, pygame.KMOD_ALT
+        )(test_func)
 
-        self.key_listener.bind("test_bind0")(test_func2)
+        self.key_listener.bind("test_bind0", pygame.KEYDOWN)(test_func2)
 
-        self.key_listener.bind("test_bind1", pygame.K_1)(test_func)
+        self.key_listener.bind("test_bind1", pygame.KEYDOWN, pygame.K_1)(test_func)
 
         self.key_listener.clear_bind("test_bind0")
 
         # No assertEmpty, so this will have to do.
         self.assertFalse(self.key_listener._key_hooks.get("test_bind0"))
         self.assertIsNotNone(self.key_listener._key_hooks.get("test_bind0"))
+        bind1_dict = self.key_listener._key_hooks.get("test_bind1")
+        assert bind1_dict
+        bind1_list = bind1_dict.get(pygame.KEYDOWN)
         self.assertIn(
             test_func,
-            cast(list[Callable], self.key_listener._key_hooks.get("test_bind1")),
+            cast(list[Callable], bind1_list),
         )
 
         self.key_listener.clear_bind("test_bind0", True)
@@ -183,17 +215,20 @@ class TestKeyListener(unittest.TestCase):
             example_var = True
             lock.release()
 
-        self.key_listener.bind("test_bind0", pygame.K_0, pygame.KMOD_ALT)(test_func)
+        self.key_listener.bind(
+            "test_bind0", pygame.KEYDOWN, pygame.K_0, pygame.KMOD_ALT
+        )(test_func)
 
-        self.key_listener.bind("test_bind9", pygame.K_9, pygame.KMOD_NONE)(test_func)
+        self.key_listener.bind("test_bind9", pygame.KEYDOWN, pygame.K_9, None)(
+            test_func
+        )
 
         local_event = pygame.event.Event(
             pygame.KEYDOWN, unicode="1", key=pygame.K_1, mod=pygame.KMOD_NONE
         )
         pygame.event.post(local_event)
         for event in pygame.event.get():
-            if event.type == pygame.KEYUP or event.type == pygame.KEYDOWN:
-                self.key_listener.notify(event)
+            self.key_listener.notify(event)
         # False, because the wrong key was pressed
         self.assertFalse(example_var)
 
@@ -202,8 +237,7 @@ class TestKeyListener(unittest.TestCase):
         )
         pygame.event.post(local_event)
         for event in pygame.event.get():
-            if event.type == pygame.KEYUP or event.type == pygame.KEYDOWN:
-                self.key_listener.notify(event)
+            self.key_listener.notify(event)
         # False, because Alt isn't held
         self.assertFalse(example_var)
 
@@ -212,8 +246,7 @@ class TestKeyListener(unittest.TestCase):
         )
         pygame.event.post(local_event)
         for event in pygame.event.get():
-            if event.type == pygame.KEYUP or event.type == pygame.KEYDOWN:
-                self.key_listener.notify(event)
+            self.key_listener.notify(event)
         # True, because both 0 and Alt are pressed
         self.assertTrue(example_var)
 
@@ -225,8 +258,7 @@ class TestKeyListener(unittest.TestCase):
         )
         pygame.event.post(local_event)
         for event in pygame.event.get():
-            if event.type == pygame.KEYUP or event.type == pygame.KEYDOWN:
-                self.key_listener.notify(event)
+            self.key_listener.notify(event)
         # True, because exact key combo match
         self.assertTrue(example_var)
 
@@ -238,8 +270,7 @@ class TestKeyListener(unittest.TestCase):
         )
         pygame.event.post(local_event)
         for event in pygame.event.get():
-            if event.type == pygame.KEYUP or event.type == pygame.KEYDOWN:
-                self.key_listener.notify(event)
+            self.key_listener.notify(event)
         # True, despite Alt also being pressed
         self.assertTrue(example_var)
 
