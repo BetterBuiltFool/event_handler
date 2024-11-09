@@ -175,19 +175,25 @@ class EventManager:
 
     def register_method(self, event_type: int) -> Callable:
         """
-        Allows for
+        Wrapper that marks the method for registration when the class is registered.
 
-        :param event_type: _description_
-        :return: _description_
+        :param event_type: Pygame event type that will call the assigned method.
         """
 
         def decorator(method: Callable) -> Callable:
+            # Tagging a method with an attribute for later reading?
+            # This reeks of "cleverness"
+            # Hope it's not too clever for me to debug.
+
+            # Although I suppose if you're reading this, it got published, which means
+            # I got it to work properly.
             assigned_managers: list[tuple[EventManager, int]] = []
             if hasattr(method, "_assigned_managers"):
+                # Deja vu? This isn't the first assignment, so we need to pull the
+                # previous ones first.
                 assigned_managers = getattr(method, "_assigned_managers", [])
             assigned_managers.append((self, event_type))
             setattr(method, "_assigned_managers", assigned_managers)
-            print(getattr(method, "_assigned_managers", []))
             return method
 
         return decorator
@@ -199,6 +205,14 @@ class EventManager:
         :param cls: The cls being deregistered.
         :raises KeyError: If cls is not contained in the class listeners, this
         error will be raised.
+        """
+
+    def deregister_method(self, method: Callable):
+        """
+        Clears the method from the registry so it is no longer called when the assigned
+        event is fired.
+
+        :param method: Method whose registration is being revoked.
         """
 
     def purge_event(self, event_type: int) -> None:
