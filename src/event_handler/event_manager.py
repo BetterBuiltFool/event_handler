@@ -15,9 +15,20 @@ class EventManager:
 
     def __init__(self, handle: str) -> None:
         self.handle: str = handle
+
+        # --------Basic function assignment--------
+        # Pygame event as key, list of functions as values
         self._listeners: dict[int, list[Callable]] = {}
+
+        # --------Class method assignment--------
+        # Pygame event key, method and affected object as values
         self._class_listeners: dict[int, list[tuple[Callable, Type[object]]]] = {}
+        # Registered object as key, instances of object as values
         self._class_listener_instances: dict[Type[object], list[object]] = {}
+        # Inversion of _class_listeners. Method as key, event id as values
+        self._class_listener_events: dict[Callable, list[int]] = {}
+        # Assigned object as key, associated methods as values
+        self._assigned_classes: dict[Type[object], list[Callable]] = {}
 
     def register(self, event_type: int) -> Callable:
         def decorator(listener: Callable) -> Callable:
@@ -80,24 +91,64 @@ class EventManager:
             if not hasattr(method, "_assigned_managers"):
                 continue
             logger.debug("Found marked method")
-            assigned_doers: list[tuple[EventManager, int]] = getattr(
+            _assigned_managers: list[tuple[EventManager, int]] = getattr(
                 method, "_assigned_managers", []
             )
-            for index, (manager, event_type) in enumerate(assigned_doers):
-                logger.debug(f"Found assigned manager: {manager}")
-                if manager is not self:
-                    continue
-                logger.debug("Found method assigned to self. Registering.")
-                logger.debug(
-                    f"Registering {method} to {pygame.event.event_name(event_type)}"
-                )
-                self._class_listeners.setdefault(event_type, []).append((method, cls))
-                assigned_doers.pop(index)
-                break
-            if len(assigned_doers) == 0:
+            self._verify_manager(cls, method, _assigned_managers)
+            if len(_assigned_managers) == 0:
+                # We cleaned up the assignments to this handler, but other handlers
+                # might have yet to check. If all have cleaned up, we can remove the
+                # hanging attribute.
                 delattr(method, "_assigned_managers")
+                # Now there's no sign we modified the method.
 
         return cls
+
+    def _verify_manager(
+        self,
+        cls: Type[object],
+        method: Callable,
+        managers: list[tuple[EventManager, int]],
+    ) -> None:
+        """
+        Checks the list of assigned managers for a method and captures it if it is
+        assigned to the calling manager
+
+        :param cls: Class of the object being processed
+        :param method: Callable being registered
+        :param managers: list of managers and pygame events being processed.
+        """
+        _indexes_to_remove: list[int] = []
+        for index, (manager, event_type) in enumerate(managers):
+            logger.debug(f"Found assigned manager: {manager}")
+            if manager is not self:
+                continue
+            self._capture_method(cls, method, event_type)
+            # Whoops, undefined behavior
+            # managers.pop(index)
+            _indexes_to_remove.append(index)
+            break
+        # Need to clean up the processed indices to we can remove the tag attribute
+        # from the method.
+        for index in reversed(_indexes_to_remove):
+            managers.pop(index)
+
+    def _capture_method(
+        self, cls: Type[object], method: Callable, event_type: int
+    ) -> None:
+        """
+        Adds the method, class, and event into the appropriate dictionaries to ensure
+        they can be properly notified.
+
+        :param cls: Class of the object being processed
+        :param method: Callable being registered
+        :param managers: list of managers and pygame events being processed.
+        """
+        logger.debug("Found method assigned to self. Registering.")
+        logger.debug(f"Registering {method} to {pygame.event.event_name(event_type)}")
+        self._class_listeners.setdefault(event_type, []).append((method, cls))
+        self._class_listener_events.setdefault(method, []).append(event_type)
+        self._assigned_classes.setdefault(cls, []).append(method)
 
     def _modify_init(self, init: Callable) -> Callable:
         """
