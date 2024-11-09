@@ -206,6 +206,11 @@ class EventManager:
         :raises KeyError: If cls is not contained in the class listeners, this
         error will be raised.
         """
+        # Purge instances
+        self._class_listener_instances.pop(cls, None)
+        # Remove methods from events
+        for method in self._assigned_classes.get(cls, []):
+            self.deregister_method(method)
 
     def deregister_method(self, method: Callable):
         """
@@ -214,6 +219,11 @@ class EventManager:
 
         :param method: Method whose registration is being revoked.
         """
+        for event_type in self._class_listener_events.get(method, []):
+            listener_sets = self._class_listeners.get(event_type, [])
+            # Retain only the listeners that are not the method
+            filter(lambda listener_set: method is not listener_set[0], listener_sets)
+        self._class_listener_events.pop(method)
 
     def purge_event(self, event_type: int) -> None:
         """
@@ -222,17 +232,25 @@ class EventManager:
         :param event_type: Pygame event type
         """
         call_list: list[Callable] | None = self._listeners.get(event_type)
-        if not call_list:
+        class_call_list = self._class_listeners.get(event_type)
+        if not call_list and not class_call_list:
             logger.warning(
                 f"Cannot purge event {pygame.event.event_name(event_type)}./n"
                 "Event has no registered functions."
             )
             return
-        logger.info(
-            "Clearing all functions from event "
-            f"{pygame.event.event_name(event_type)}"
-        )
-        call_list.clear()
+        if call_list:
+            logger.info(
+                "Clearing all functions from event "
+                f"{pygame.event.event_name(event_type)}"
+            )
+            call_list.clear()
+        if class_call_list:
+            logger.info(
+                "Clearing all methods from event "
+                f"{pygame.event.event_name(event_type)}"
+            )
+            class_call_list.clear()
 
     def notify(self, event: pygame.Event) -> None:
         """
