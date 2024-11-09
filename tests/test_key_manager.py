@@ -96,13 +96,11 @@ class TestKeyListener(unittest.TestCase):
         def test_func(_) -> None:
             pass
 
-        self.key_listener.bind(
-            "test_bind0", pygame.KEYDOWN, pygame.K_0, pygame.KMOD_ALT
-        )(test_func)
+        self.key_listener.bind("test_bind0", pygame.K_0, pygame.KMOD_ALT)(test_func)
 
-        self.key_listener.bind("test_bind1", pygame.KEYDOWN, pygame.K_1)(test_func)
+        self.key_listener.bind("test_bind1", pygame.K_1)(test_func)
 
-        self.key_listener.bind("test_bind2", pygame.KEYDOWN)(test_func)
+        self.key_listener.bind("test_bind2")(test_func)
 
         self.assertIn("test_bind0", self.key_listener._key_hooks.keys())
         self.assertIn("test_bind1", self.key_listener._key_hooks.keys())
@@ -137,13 +135,11 @@ class TestKeyListener(unittest.TestCase):
         def test_func(_) -> None:
             pass
 
-        self.key_listener.bind(
-            "test_bind0", pygame.KEYDOWN, pygame.K_0, pygame.KMOD_ALT
-        )(test_func)
+        self.key_listener.bind("test_bind0", pygame.K_0, pygame.KMOD_ALT)(test_func)
 
-        self.key_listener.bind("test_bind1", pygame.KEYDOWN, pygame.K_1)(test_func)
+        self.key_listener.bind("test_bind1", pygame.K_1)(test_func)
 
-        self.key_listener.bind("test_bind2", pygame.KEYDOWN, pygame.KEYDOWN)(test_func)
+        self.key_listener.bind("test_bind2")(test_func)
 
         self.key_listener.unbind(test_func, "test_bind0")
 
@@ -179,13 +175,11 @@ class TestKeyListener(unittest.TestCase):
         def test_func2(_) -> None:
             pass
 
-        self.key_listener.bind(
-            "test_bind0", pygame.KEYDOWN, pygame.K_0, pygame.KMOD_ALT
-        )(test_func)
+        self.key_listener.bind("test_bind0", pygame.K_0, pygame.KMOD_ALT)(test_func)
 
-        self.key_listener.bind("test_bind0", pygame.KEYDOWN)(test_func2)
+        self.key_listener.bind("test_bind0")(test_func2)
 
-        self.key_listener.bind("test_bind1", pygame.KEYDOWN, pygame.K_1)(test_func)
+        self.key_listener.bind("test_bind1", pygame.K_1)(test_func)
 
         self.key_listener.clear_bind("test_bind0")
 
@@ -215,13 +209,9 @@ class TestKeyListener(unittest.TestCase):
             example_var = True
             lock.release()
 
-        self.key_listener.bind(
-            "test_bind0", pygame.KEYDOWN, pygame.K_0, pygame.KMOD_ALT
-        )(test_func)
+        self.key_listener.bind("test_bind0", pygame.K_0, pygame.KMOD_ALT)(test_func)
 
-        self.key_listener.bind("test_bind9", pygame.KEYDOWN, pygame.K_9, None)(
-            test_func
-        )
+        self.key_listener.bind("test_bind9", pygame.K_9, None)(test_func)
 
         local_event = pygame.event.Event(
             pygame.KEYDOWN, unicode="1", key=pygame.K_1, mod=pygame.KMOD_NONE

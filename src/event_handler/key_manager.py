@@ -113,9 +113,9 @@ class KeyListener:
     def bind(
         self,
         key_bind_name: str,
-        event_type: int,
         default_key: Optional[int] = None,
         default_mod: Optional[int] = None,
+        event_type: int = pygame.KEYDOWN,
     ) -> Callable:
         """
         Adds a bind field to the key registry, and associates the following
@@ -128,8 +128,10 @@ class KeyListener:
         :param default_key:
         Pygame key constant used to fill the registry if the bind doesn't
         exist or does not have an assigned key, defaults to None
-        :param default_mod: Mod keys required for activating the key bind. If
-        using multiple, use bitwise OR to combine, defaults to pygame.KMOD_NONE
+        :param default_mod: Mod keys required for activating the key bind. None means
+        the bind works with any mod keys pressed. pygame.KMOD_NONE means it requires no
+        mod keys to be pressed. If using multiple, use bitwise OR to combine, defaults
+        to None
         """
         self._generate_bind(key_bind_name, default_key, default_mod)
 
