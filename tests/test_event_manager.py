@@ -15,8 +15,8 @@ class TestEventManager(unittest.TestCase):
 
     def setUp(self) -> None:
         self.event_manager = getEventManager("TestCase")
-        self.test_event = pygame.USEREVENT+1
-        self.test_event2 = pygame.USEREVENT+2
+        self.test_event = pygame.USEREVENT + 1
+        self.test_event2 = pygame.USEREVENT + 2
 
     def tearDown(self) -> None:
         self.event_manager._listeners.clear()
@@ -29,10 +29,7 @@ class TestEventManager(unittest.TestCase):
         self.event_manager.register(self.test_event)(test_func)
         self.assertIn(
             test_func,
-            cast(
-                list[Callable],
-                self.event_manager._listeners.get(self.test_event)
-            )
+            cast(list[Callable], self.event_manager._listeners.get(self.test_event)),
         )
 
     def test_deregister(self) -> None:
@@ -45,17 +42,11 @@ class TestEventManager(unittest.TestCase):
         self.event_manager.deregister(test_func, self.test_event)
         self.assertNotIn(
             test_func,
-            cast(
-                list[Callable],
-                self.event_manager._listeners.get(self.test_event)
-            )
+            cast(list[Callable], self.event_manager._listeners.get(self.test_event)),
         )
         self.assertIn(
             test_func,
-            cast(
-                list[Callable],
-                self.event_manager._listeners.get(self.test_event2)
-            )
+            cast(list[Callable], self.event_manager._listeners.get(self.test_event2)),
         )
 
     def test_deregister_all(self) -> None:
@@ -68,17 +59,11 @@ class TestEventManager(unittest.TestCase):
         self.event_manager.deregister(test_func)
         self.assertNotIn(
             test_func,
-            cast(
-                list[Callable],
-                self.event_manager._listeners.get(self.test_event)
-            )
+            cast(list[Callable], self.event_manager._listeners.get(self.test_event)),
         )
         self.assertNotIn(
             test_func,
-            cast(
-                list[Callable],
-                self.event_manager._listeners.get(self.test_event2)
-            )
+            cast(list[Callable], self.event_manager._listeners.get(self.test_event2)),
         )
 
     def test_event_purge(self) -> None:
@@ -97,32 +82,20 @@ class TestEventManager(unittest.TestCase):
         # Verify both have been cleared from test_event
         self.assertNotIn(
             test_func,
-            cast(
-                list[Callable],
-                self.event_manager._listeners.get(self.test_event)
-            )
+            cast(list[Callable], self.event_manager._listeners.get(self.test_event)),
         )
         self.assertNotIn(
             test_func2,
-            cast(
-                list[Callable],
-                self.event_manager._listeners.get(self.test_event)
-            )
+            cast(list[Callable], self.event_manager._listeners.get(self.test_event)),
         )
         # But both need to remain in test_event2
         self.assertIn(
             test_func,
-            cast(
-                list[Callable],
-                self.event_manager._listeners.get(self.test_event2)
-            )
+            cast(list[Callable], self.event_manager._listeners.get(self.test_event2)),
         )
         self.assertIn(
             test_func2,
-            cast(
-                list[Callable],
-                self.event_manager._listeners.get(self.test_event2)
-            )
+            cast(list[Callable], self.event_manager._listeners.get(self.test_event2)),
         )
 
     def test_notify(self) -> None:

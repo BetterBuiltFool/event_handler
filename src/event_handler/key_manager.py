@@ -10,9 +10,7 @@ import pygame
 
 logger: logging.Logger = logging.getLogger(__name__)
 
-KeyBind = NamedTuple("KeyBind",
-                     [("bind_name", str),
-                      ("mod", int)])
+KeyBind = NamedTuple("KeyBind", [("bind_name", str), ("mod", int)])
 
 
 @dataclass
@@ -20,11 +18,10 @@ class KeyMap:
     """
     A dictionary of keybind events with associated keys.
     """
+
     key_binds: dict[int | None, list[KeyBind]] = field(default_factory=dict)
 
-    def rebind(self,
-               new_key_bind: KeyBind,
-               new_key: Optional[int] = None) -> None:
+    def rebind(self, new_key_bind: KeyBind, new_key: Optional[int] = None) -> None:
         """
         Takes the given keybind, unbinds it from its current key, and rebinds
         it to the given key. If no key is given, it is put under None, meaning
@@ -46,9 +43,7 @@ class KeyMap:
 
         self.key_binds.setdefault(new_key, []).append(new_key_bind)
 
-    def get_bound_key(self,
-                      bind_name: str
-                      ) -> tuple[int | None, int] | None:
+    def get_bound_key(self, bind_name: str) -> tuple[int | None, int] | None:
         """
         Finds the current key that binds to the given bind name, and
         returns it in a tuple with the bound mod keys.
@@ -68,10 +63,7 @@ class KeyMap:
                     return key, key_bind.mod
         return None
 
-    def remove_bind(self,
-                    bind_name: str,
-                    key: Optional[int] = None
-                    ) -> None:
+    def remove_bind(self, bind_name: str, key: Optional[int] = None) -> None:
         """
         Eliminates the specified bind from the specified key, or all instances
         if no key is specified.
@@ -84,7 +76,7 @@ class KeyMap:
             key_bind_list = self.key_binds.get(key, None)
             if not key_bind_list:
                 logger.warning(
-                    f" Cannot remove \'{bind_name}\';"
+                    f" Cannot remove '{bind_name}';"
                     f" {pygame.key.name(key)} does not have any binds."
                 )
                 return
@@ -96,7 +88,7 @@ class KeyMap:
                 key_bind_list.remove(item)
             if not to_remove:
                 logger.warning(
-                    f" Cannot remove \'{bind_name}\';"
+                    f" Cannot remove '{bind_name}';"
                     f" bind does not exist in {pygame.key.name(key)}"
                 )
             return
@@ -122,7 +114,7 @@ class KeyListener:
         self,
         key_bind_name: str,
         default_key: Optional[int] = None,
-        default_mod: int = pygame.KMOD_NONE
+        default_mod: int = pygame.KMOD_NONE,
     ) -> Callable:
         """
         Adds a bind field to the key registry, and associates the following
@@ -138,27 +130,22 @@ class KeyListener:
         :param default_mod: Mod keys required for activating the key bind. If
         using multiple, use bitwise OR to combine, defaults to pygame.KMOD_NONE
         """
-        self._generate_bind(
-            key_bind_name,
-            default_key,
-            default_mod
-        )
+        self._generate_bind(key_bind_name, default_key, default_mod)
 
         def decorator(responder: Callable) -> Callable:
             # Regardless, add the responder to the bind within our hook dict
-            hooks: list[Callable] = self._key_hooks.setdefault(
-                key_bind_name, []
-            )
+            hooks: list[Callable] = self._key_hooks.setdefault(key_bind_name, [])
             if responder not in hooks:
                 hooks.append(responder)
             return responder
+
         return decorator
 
     def rebind(
         self,
         key_bind_name: str,
         new_key: Optional[int],
-        new_mod: int = pygame.KMOD_NONE
+        new_mod: int = pygame.KMOD_NONE,
     ) -> tuple[int | None, int] | None:
         """
         Attempts to assign the new key info the the named bind.
@@ -173,17 +160,13 @@ class KeyListener:
         old_bind = self.key_map.get_bound_key(key_bind_name)
         if old_bind:
             logger.warning(
-                f"Attempted to rebind \'{key_bind_name}\' when bind does not"
+                f"Attempted to rebind '{key_bind_name}' when bind does not"
                 " exist. \n Program might be attempting to rebind before"
                 " generating binds, or bind name may be incorrect."
             )
             return None
         self.key_map.rebind(
-            KeyBind(
-                bind_name=key_bind_name,
-                mod=new_mod
-            ),
-            new_key=new_key
+            KeyBind(bind_name=key_bind_name, mod=new_mod), new_key=new_key
         )
 
         return old_bind
@@ -200,14 +183,14 @@ class KeyListener:
             bind = self._key_hooks.get(bind_name)
             if not bind:
                 logger.warning(
-                    f"Bind name \'{bind_name}\' does not exist in KeyListener "
-                    f"\'{self.handle}\'"
+                    f"Bind name '{bind_name}' does not exist in KeyListener "
+                    f"'{self.handle}'"
                 )
                 return
             if func not in bind:
                 logger.warning(
-                    f"Cannot remove function {func.__name__} from \'"
-                    f"{bind_name}\' of KeyListener: {self.handle}.\n"
+                    f"Cannot remove function {func.__name__} from '"
+                    f"{bind_name}' of KeyListener: {self.handle}.\n"
                     f"Function is not bound to that name."
                 )
                 return
@@ -216,7 +199,7 @@ class KeyListener:
             for name, bind in self._key_hooks.items():
                 if func in bind:
                     logger.info(
-                        f"Removing {func.__name__} from \'{name}\' in "
+                        f"Removing {func.__name__} from '{name}' in "
                         f"KeyListener: {self.handle}."
                     )
                     bind.remove(func)
@@ -232,24 +215,23 @@ class KeyListener:
             bind = self._key_hooks.pop(bind_name, None)
             if bind is None:
                 logger.warning(
-                    f" Cannot remove bind \'{bind_name}\';"
-                    " bind does not exist."
+                    f" Cannot remove bind '{bind_name}';" " bind does not exist."
                 )
                 return
             self.key_map.remove_bind(bind_name)
             return
         call_list = self._key_hooks.get(bind_name, None)
         if call_list is None:
-            logger.warning(
-                f" Bind \'{bind_name}\' not in key registry."
-            )
+            logger.warning(f" Bind '{bind_name}' not in key registry.")
             return
         call_list.clear()
 
-    def _generate_bind(self,
-                       key_bind_name: str,
-                       default_key: Optional[int] = None,
-                       default_mod: int = pygame.KMOD_NONE) -> None:
+    def _generate_bind(
+        self,
+        key_bind_name: str,
+        default_key: Optional[int] = None,
+        default_mod: int = pygame.KMOD_NONE,
+    ) -> None:
         """
         Looks for a bind matching the given name.
         Creates the bind if it does not exist.
@@ -262,10 +244,9 @@ class KeyListener:
         defaults to pygame.KMOD_NONE
         """
         if not self.key_map.get_bound_key(key_bind_name):
-            self.key_map.key_binds.setdefault(
-                default_key,
-                []
-            ).append(KeyBind(bind_name=key_bind_name, mod=default_mod))
+            self.key_map.key_binds.setdefault(default_key, []).append(
+                KeyBind(bind_name=key_bind_name, mod=default_mod)
+            )
 
     def notify(self, event: pygame.Event) -> None:
         key_changed = event.key
@@ -273,26 +254,18 @@ class KeyListener:
         key_binds = self.key_map.key_binds.get(key_changed, [])
         for key_bind in key_binds:
             # Try to match the mod keys. If they don't, move on to the next.
-            if not (
-                (key_bind.mod == pygame.KMOD_NONE)
-                or key_bind.mod & mod_keys
-            ):
+            if not ((key_bind.mod == pygame.KMOD_NONE) or key_bind.mod & mod_keys):
                 continue
             hooks = self._key_hooks.get(key_bind.bind_name, [])
             # Pass along our event to each callable.
             for hook in hooks:
-                threading.Thread(
-                    target=hook,
-                    args=(event,)
-                ).start()
+                threading.Thread(target=hook, args=(event,)).start()
                 # hook(event)
 
-    def load_from_file(self,
-                       filepath: Path) -> None:
+    def load_from_file(self, filepath: Path) -> None:
         raise NotImplementedError("This feature is not yet available")
 
-    def save_to_file(self,
-                     location: Path) -> None:
+    def save_to_file(self, location: Path) -> None:
         raise NotImplementedError("This feature is not yet available")
 
 
