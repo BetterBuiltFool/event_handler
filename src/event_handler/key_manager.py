@@ -106,10 +106,10 @@ class KeyMap:
 
 class KeyListener:
     _listeners: dict[str, KeyListener] = {}
+    key_map: KeyMap = KeyMap()
 
     def __init__(self, handle: str) -> None:
         self.handle: str = handle
-        self.key_map: KeyMap = KeyMap()
 
         # Workflow:
         # Key event -> send key to key map
