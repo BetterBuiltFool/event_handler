@@ -1,107 +1,36 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from abc import ABC, abstractmethod
 import functools
 import logging
 from pathlib import Path
 import threading
-from typing import Callable, NamedTuple, Optional, Type
+from typing import Callable, Optional, Type
 from weakref import WeakSet
+
+# import file_parser
+from .key_map import KeyBind, KeyMap
 
 import pygame
 
 logger: logging.Logger = logging.getLogger(__name__)
 
-KeyBind = NamedTuple("KeyBind", [("bind_name", str), ("mod", int | None)])
 
+class FileParser(ABC):
 
-@dataclass
-class KeyMap:
-    """
-    A dictionary of keybind events with associated keys.
-    """
+    def __init__(self, file_path: Path, key_map: Optional[KeyMap] = None):
+        super().__init__()
+        self.file_path = file_path
+        self.key_map = key_map
 
-    key_binds: dict[int | None, list[KeyBind]] = field(default_factory=dict)
+    @abstractmethod
+    def load(self) -> KeyMap: ...
 
-    def rebind(self, new_key_bind: KeyBind, new_key: Optional[int] = None) -> None:
-        """
-        Takes the given keybind, unbinds it from its current key, and rebinds
-        it to the given key. If no key is given, it is put under None, meaning
-        the hook is regarded as unbound, and cannot be called.
+    @abstractmethod
+    def save(self) -> None: ...
 
-        :param new_key_bind: Keybind containing the bind name and mod keys.
-        :param new_key: Pygame key id, defaults to None
-        """
-        for key_bind_list in self.key_binds.values():
-            binds_to_remove: list[KeyBind] = []
-            key_bind: KeyBind
-            for key_bind in key_bind_list:
-                if key_bind.bind_name == new_key_bind.bind_name:
-                    # Can't directly remove in the loop, could skip one.
-                    binds_to_remove.append(key_bind)
-            removed_bind: KeyBind
-            for removed_bind in binds_to_remove:
-                key_bind_list.remove(removed_bind)
-
-        self.key_binds.setdefault(new_key, []).append(new_key_bind)
-
-    def get_bound_key(self, bind_name: str) -> tuple[int | None, int | None] | None:
-        """
-        Finds the current key that binds to the given bind name, and
-        returns it in a tuple with the bound mod keys.
-
-        If the bind is not used, returns None.
-
-        :param bind_name: Name of the bind being used.
-        :return: Tuple containing two ints, first representing the number for
-        a pygame key, the second a bitmask int representing pygame mod keys.
-        """
-        key: int | None
-        key_bind_list: list[KeyBind]
-        key_bind: KeyBind
-        for key, key_bind_list in self.key_binds.items():
-            for key_bind in key_bind_list:
-                if key_bind.bind_name == bind_name:
-                    return key, key_bind.mod
-        return None
-
-    def remove_bind(self, bind_name: str, key: Optional[int] = None) -> None:
-        """
-        Eliminates the specified bind from the specified key, or all instances
-        if no key is specified.
-
-        :param bind_name: Name of the bind being removed
-        :param key: Integer of pygame key code to search, defaults to None
-        """
-        key_bind_list: list[KeyBind] | None
-        if key is not None:
-            key_bind_list = self.key_binds.get(key, None)
-            if not key_bind_list:
-                logger.warning(
-                    f" Cannot remove '{bind_name}';"
-                    f" {pygame.key.name(key)} does not have any binds."
-                )
-                return
-            to_remove: list[KeyBind] = []
-            for key_bind in key_bind_list:
-                if key_bind.bind_name == bind_name:
-                    to_remove.append(key_bind)
-            for item in to_remove:
-                key_bind_list.remove(item)
-            if not to_remove:
-                logger.warning(
-                    f" Cannot remove '{bind_name}';"
-                    f" bind does not exist in {pygame.key.name(key)}"
-                )
-            return
-        for key_bind_list in self.key_binds.values():
-            to_remove = []
-            for key_bind in key_bind_list:
-                if key_bind.bind_name == bind_name:
-                    to_remove.append(key_bind)
-            for item in to_remove:
-                key_bind_list.remove(item)
-        return None
+    @abstractmethod
+    def unpack_binds(self, maps: dict) -> KeyMap: ...
 
 
 class KeyListener:
@@ -500,13 +429,20 @@ class KeyListener:
                 for instance in instances:
                     threading.Thread(target=method, args=(instance, event)).start()
 
-    @staticmethod
-    def load_from_file(self, filepath: Path) -> None:
-        raise NotImplementedError("This feature is not yet available")
+    @classmethod
+    def load_from_file(cls, parser: FileParser) -> None:
+        binds = parser.load()
+        for key, bind_list in binds.key_binds.items():
+            for bind in bind_list:
+                cls.key_map.rebind(bind, key)
+        # cls.key_map.key_binds.update(binds.key_binds)
+        # raise NotImplementedError("This feature is not yet available")
 
-    @staticmethod
-    def save_to_file(self, location: Path) -> None:
-        raise NotImplementedError("This feature is not yet available")
+    @classmethod
+    def save_to_file(cls, parser: FileParser) -> None:
+        parser.key_map = cls.key_map
+        parser.save()
+        # raise NotImplementedError("This feature is not yet available")
 
 
 def notifyKeyListeners(event: pygame.Event) -> None:
