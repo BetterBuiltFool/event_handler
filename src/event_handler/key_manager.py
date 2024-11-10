@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import functools
 import logging
 from pathlib import Path
 import threading
-from typing import Callable, NamedTuple, Optional
+from typing import Callable, NamedTuple, Optional, Type
+from weakref import WeakSet
 
 import pygame
 
@@ -106,9 +108,40 @@ class KeyListener:
     _listeners: dict[str, KeyListener] = {}
 
     def __init__(self, handle: str) -> None:
-        self.key_map: KeyMap = KeyMap()
-        self._key_hooks: dict[str, dict[int, list[Callable]]] = {}
         self.handle: str = handle
+        self.key_map: KeyMap = KeyMap()
+
+        # Workflow:
+        # Key event -> send key to key map
+        # Key map -> bind name, mod keys
+        # Check mod keys, bind name -> dict w/ event types
+        # Feed event type -> get callable
+        # Call the callable
+
+        # --------Basic function assignment--------
+        # Meta dict, string bind name as key, then event type as key to get callable
+        self._key_hooks: dict[str, dict[int, list[Callable]]] = {}
+
+        # Workflow:
+        # Key event -> send key to key map
+        # Key map -> bind name, mod keys
+        # Check mod keys, bind name -> dict w/ event types
+        # Feed event type -> get callable
+        # Call the callable
+
+        # --------Class method assignment--------
+        # Meta dict, string bind name as key, then Pygame event key, method and
+        # affected object as values
+        self._class_listeners: dict[
+            str, dict[int, list[tuple[Callable, Type[object]]]]
+        ] = {}
+        # Registered object as key, instances of object as values
+        # Instances are unique, so make it a set for weak reference
+        self._class_listener_instances: dict[Type[object], WeakSet[object]] = {}
+        # Inversion of _class_listeners. Method as key, bind name
+        self._class_listener_binds: dict[Callable, list[str]] = {}
+        # Assigned object as key, associated methods as values
+        self._assigned_classes: dict[Type[object], list[Callable]] = {}
 
     def bind(
         self,
@@ -150,7 +183,7 @@ class KeyListener:
     def rebind(
         self,
         key_bind_name: str,
-        new_key: Optional[int],
+        new_key: int | None,
         new_mod: Optional[int] = None,
     ) -> tuple[int | None, int] | None:
         """
@@ -214,6 +247,184 @@ class KeyListener:
                     )
                     bind.remove(func)
 
+    def register_class(self, cls: Type[object]) -> Type[object]:
+        """
+        Prepares a class for event handling.
+        This will hijack the class's init method to push its instances into
+        the assigned key listener.
+
+        It will also go through and clean up the assigned methods.
+        """
+        cls.__init__ = self._modify_init(cls.__init__)  # type: ignore
+        # Add all of the tagged methods to the callables list
+        logger.debug("Checking for marked methods")
+        for _, method in cls.__dict__.items():
+            if not hasattr(method, "_assigned_listeners"):
+                continue
+
+            logger.debug("Found marked method")
+
+            _assigned_listeners: list[
+                tuple[KeyListener, str, int | None, int | None, int]
+            ] = getattr(method, "_assigned_listeners", [])
+
+            self._verify_listener(cls, method, _assigned_listeners)
+
+            if len(_assigned_listeners) == 0:
+                delattr(method, "_assigned_listeners")
+
+        return cls
+
+    def _verify_listener(
+        self,
+        cls: Type[object],
+        method: Callable,
+        listeners: list[tuple[KeyListener, str, int | None, int | None, int]],
+    ) -> None:
+        """
+        Checks the list of assigned managers for a method and captures it if it is
+        assigned to the calling manager
+
+        :param cls: Class of the object being processed
+        :param method: Callable being registered
+        :param managers: list of managers and pygame events being processed.
+        """
+        _indexes_to_remove: list[int] = []
+        for index, (
+            listener,
+            bind_name,
+            default_key,
+            default_mod,
+            event_type,
+        ) in enumerate(listeners):
+            logger.debug(f"Found assigned manager: {listener}")
+            if listener is not self:
+                continue
+            self._capture_method(
+                cls, method, bind_name, default_key, default_mod, event_type
+            )
+            _indexes_to_remove.append(index)
+            break
+        for index in reversed(_indexes_to_remove):
+            listeners.pop(index)
+
+    def _capture_method(
+        self,
+        cls: Type[object],
+        method: Callable,
+        key_bind_name: str,
+        default_key: int | None,
+        default_mod: int | None,
+        event_type: int,
+    ) -> None:
+        """
+        Adds the method, class, and event into the appropriate dictionaries to ensure
+        they can be properly notified.
+
+        :param cls: Class of the object being processed
+        :param method: Callable being registered
+        :param managers: list of managers and pygame events being processed.
+        """
+        logger.debug("Found method assigned to self. Registering.")
+        logger.debug(f"Registering {method} to {pygame.event.event_name(event_type)}")
+
+        self._generate_bind(key_bind_name, default_key, default_mod)
+
+        self._class_listeners.setdefault(key_bind_name, {}).setdefault(
+            event_type, []
+        ).append((method, cls))
+        self._class_listener_binds.setdefault(method, []).append(key_bind_name)
+        self._assigned_classes.setdefault(cls, []).append(method)
+
+    def _modify_init(self, init: Callable) -> Callable:
+        """
+        Extracts the class and instance being generated, and puts them into a
+        dict, so that the method can be called upon it
+
+        :param init: The initializer function of a class being registered.
+        :return: The modified init function
+        """
+        functools.wraps(init)  # Needs this
+
+        def wrapper(*args, **kwds):
+            # args[0] of a non-class, non-static method is the instance
+            # This is called whenever the class is instantiated,
+            # and the instance is extracted and can be stored
+            instance = args[0]
+            cls = instance.__class__
+            # No need to check for the instance, each only calls this once
+            self._class_listener_instances.setdefault(cls, WeakSet()).add(instance)
+            logger.debug(f"Extracted instance {instance} from {cls}")
+            return init(*args, **kwds)
+
+        return wrapper
+
+    def bind_method(
+        self,
+        key_bind_name: str,
+        default_key: Optional[int] = None,
+        default_mod: Optional[int] = None,
+        event_type: int = pygame.KEYDOWN,
+    ) -> Callable:
+        """
+        Wrapper that marks the method for registration when the class is registered.
+
+        The method's class should be registered with all event managers that have
+        registered a method in that class. Failure to do so will leave a dangling
+        attribute on those methods.
+
+        :param event_type: Pygame event type that will call the assigned method.
+        """
+
+        def decorator(method: Callable) -> Callable:
+            # Nearly an exact duplicate of the EventManager version
+            assigned_listeners: list[
+                tuple[KeyListener, str, int | None, int | None, int]
+            ] = []
+            if hasattr(method, "_assigned_listeners"):
+                assigned_listeners = getattr(method, "_assigned_listeners", [])
+            assigned_listeners.append(
+                (self, key_bind_name, default_key, default_mod, event_type)
+            )
+            setattr(method, "_assigned_listeners", assigned_listeners)
+            return method
+
+        return decorator
+
+    def deregister_class(self, cls: Type[object]):
+        """
+        Clears all instances and methods belonging to the supplied class.
+
+        :param cls: The cls being deregistered.
+        :raises KeyError: If cls is not contained in the class listeners, this
+        error will be raised.
+        """
+        self._class_listener_instances.pop(cls, None)
+        for method in self._assigned_classes.get(cls, []):
+            self.unbind_method(method)
+        self._assigned_classes.pop(cls)
+
+    def unbind_method(self, method: Callable):
+        """
+        Clears the method from its bindings.
+
+        :param method: Method being unbound
+        """
+        for bind_name in self._class_listener_binds.get(method, []):
+            event_sets = self._class_listeners.get(bind_name, {})
+            for event_type, listener_sets in event_sets.items():
+                # We don't know the event type for the method,
+                # so we need to check all of them
+                listener_sets = list(
+                    filter(
+                        lambda listener_set: method is not listener_set[0],
+                        listener_sets,
+                    )
+                )
+                event_sets.update({event_type: listener_sets})
+            self._class_listeners.update({bind_name: event_sets})
+        self._class_listener_binds.pop(method)
+
     def clear_bind(self, bind_name: str, eliminate_bind: bool = False) -> None:
         """
         Clears all callables from the specified bind name
@@ -231,10 +442,16 @@ class KeyListener:
             self.key_map.remove_bind(bind_name)
             return
         call_list = self._key_hooks.get(bind_name, None)
-        if call_list is None:
+        class_call_list = self._class_listeners.get(bind_name, None)
+        if call_list is None and class_call_list is None:
             logger.warning(f" Bind '{bind_name}' not in key registry.")
             return
-        call_list.clear()
+        if call_list:
+            logger.info(f"Clearing all functions from bind {bind_name}")
+            call_list.clear()
+        if class_call_list:
+            logger.info(f"Clearing all methods from bind {bind_name}")
+            class_call_list.clear()
 
     def _generate_bind(
         self,
@@ -275,6 +492,13 @@ class KeyListener:
             for responder in responders:
                 threading.Thread(target=responder, args=(event,)).start()
                 # hook(event)
+
+            method_hooks = self._class_listeners.get(key_bind.bind_name, {})
+            listeners = method_hooks.get(event.type, [])
+            for method, cls in listeners:
+                instances = self._class_listener_instances.get(cls, WeakSet())
+                for instance in instances:
+                    threading.Thread(target=method, args=(instance, event)).start()
 
     def load_from_file(self, filepath: Path) -> None:
         raise NotImplementedError("This feature is not yet available")
