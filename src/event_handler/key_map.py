@@ -1,3 +1,4 @@
+from __future__ import annotations
 from dataclasses import dataclass, field
 import logging
 from typing import NamedTuple, Optional
@@ -102,6 +103,18 @@ class KeyMap:
             for item in to_remove:
                 key_bind_list.remove(item)
         return None
+
+    def merge(self, other: KeyMap) -> None:
+        """
+        Uses the supplied other map to rebind any existing keys to match the other map.
+        Adds any binds from other map into the current key map, and preserves any other
+        binds it already holds.
+
+        :param other: Key map to be merged.
+        """
+        for key, bind_list in other.key_binds.items():
+            for bind in bind_list:
+                self.rebind(bind, key)
 
     def pack_binds(self) -> dict:
         """
