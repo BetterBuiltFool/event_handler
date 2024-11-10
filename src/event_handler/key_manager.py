@@ -5,7 +5,7 @@ import functools
 import logging
 from pathlib import Path
 import threading
-from typing import Callable, Optional, Type
+from typing import Callable, Optional, TextIO, Type
 from weakref import WeakSet
 
 # import file_parser
@@ -24,10 +24,10 @@ class FileParser(ABC):
         self.key_map = key_map
 
     @abstractmethod
-    def load(self) -> KeyMap: ...
+    def load(self, in_file: TextIO) -> KeyMap: ...
 
     @abstractmethod
-    def save(self) -> None: ...
+    def save(self, out_file: TextIO) -> None: ...
 
     @abstractmethod
     def unpack_binds(self, maps: dict) -> KeyMap: ...
@@ -431,17 +431,18 @@ class KeyListener:
 
     @classmethod
     def load_from_file(cls, parser: FileParser) -> None:
-        binds = parser.load()
-        for key, bind_list in binds.key_binds.items():
-            for bind in bind_list:
-                cls.key_map.rebind(bind, key)
-        # cls.key_map.key_binds.update(binds.key_binds)
-        # raise NotImplementedError("This feature is not yet available")
+        with open(parser.file_path, "r") as file:
+            binds = parser.load(file)
+            cls.key_map.merge(binds)
+
+    # cls.key_map.key_binds.update(binds.key_binds)
+    # raise NotImplementedError("This feature is not yet available")
 
     @classmethod
     def save_to_file(cls, parser: FileParser) -> None:
         parser.key_map = cls.key_map
-        parser.save()
+        with open(parser.file_path, "w") as file:
+            parser.save(file)
         # raise NotImplementedError("This feature is not yet available")
 
 

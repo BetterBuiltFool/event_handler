@@ -1,4 +1,5 @@
 import json
+from typing import TextIO
 
 from .key_manager import FileParser
 from .key_map import KeyMap, KeyBind
@@ -11,18 +12,17 @@ class JSONParser(FileParser):
     def __init__(self, file_path, key_map=None):
         super().__init__(file_path, key_map)
 
-    def load(self) -> KeyMap:
-        with open(self.file_path, "r") as file:
-            maps = json.load(file)
-            self.key_map = self.unpack_binds(maps)
+    def load(self, in_file: TextIO) -> KeyMap:
+        # with open(self.file_path, "r") as file:
+        maps = json.load(in_file)
+        self.key_map = self.unpack_binds(maps)
         return self.key_map
 
-    def save(self) -> None:
+    def save(self, out_file: TextIO) -> None:
         if not self.key_map:
             raise ValueError("Cannot save key map; Parser has no key map.")
-        with open(self.file_path, "w") as file:
-            maps = self.key_map.pack_binds()
-            json.dump(maps, file)
+        maps = self.key_map.pack_binds()
+        json.dump(maps, out_file)
 
     def unpack_binds(self, maps: dict) -> KeyMap:
         unpacked_dict: dict[int | None, list[KeyBind]] = {}
