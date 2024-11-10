@@ -18,16 +18,11 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 class FileParser(ABC):
 
-    def __init__(self, file_path: Path, key_map: Optional[KeyMap] = None):
-        super().__init__()
-        self.file_path = file_path
-        self.key_map = key_map
-
     @abstractmethod
     def load(self, in_file: TextIO) -> KeyMap: ...
 
     @abstractmethod
-    def save(self, out_file: TextIO) -> None: ...
+    def save(self, key_map: KeyMap, out_file: TextIO) -> None: ...
 
     @abstractmethod
     def unpack_binds(self, maps: dict) -> KeyMap: ...
@@ -430,8 +425,8 @@ class KeyListener:
                     threading.Thread(target=method, args=(instance, event)).start()
 
     @classmethod
-    def load_from_file(cls, parser: FileParser) -> None:
-        with open(parser.file_path, "r") as file:
+    def load_from_file(cls, file_path: Path, parser: FileParser) -> None:
+        with open(file_path, "r") as file:
             binds = parser.load(file)
             cls.key_map.merge(binds)
 
@@ -439,10 +434,9 @@ class KeyListener:
     # raise NotImplementedError("This feature is not yet available")
 
     @classmethod
-    def save_to_file(cls, parser: FileParser) -> None:
-        parser.key_map = cls.key_map
-        with open(parser.file_path, "w") as file:
-            parser.save(file)
+    def save_to_file(cls, file_path: Path, parser: FileParser) -> None:
+        with open(file_path, "w") as file:
+            parser.save(cls.key_map, file)
         # raise NotImplementedError("This feature is not yet available")
 
 
