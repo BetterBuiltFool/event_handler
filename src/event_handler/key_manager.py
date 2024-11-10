@@ -408,10 +408,16 @@ class KeyListener:
             self.key_map.remove_bind(bind_name)
             return
         call_list = self._key_hooks.get(bind_name, None)
-        if call_list is None:
+        class_call_list = self._class_listeners.get(bind_name, None)
+        if call_list is None and class_call_list is None:
             logger.warning(f" Bind '{bind_name}' not in key registry.")
             return
-        call_list.clear()
+        if call_list:
+            logger.info(f"Clearing all functions from bind {bind_name}")
+            call_list.clear()
+        if class_call_list:
+            logger.info(f"Clearing all methods from bind {bind_name}")
+            class_call_list.clear()
 
     def _generate_bind(
         self,
