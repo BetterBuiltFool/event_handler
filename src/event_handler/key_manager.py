@@ -106,10 +106,10 @@ class KeyMap:
 
 class KeyListener:
     _listeners: dict[str, KeyListener] = {}
+    key_map: KeyMap = KeyMap()
 
     def __init__(self, handle: str) -> None:
         self.handle: str = handle
-        self.key_map: KeyMap = KeyMap()
 
         # Workflow:
         # Key event -> send key to key map
@@ -500,9 +500,11 @@ class KeyListener:
                 for instance in instances:
                     threading.Thread(target=method, args=(instance, event)).start()
 
+    @staticmethod
     def load_from_file(self, filepath: Path) -> None:
         raise NotImplementedError("This feature is not yet available")
 
+    @staticmethod
     def save_to_file(self, location: Path) -> None:
         raise NotImplementedError("This feature is not yet available")
 
