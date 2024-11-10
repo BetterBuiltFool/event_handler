@@ -397,7 +397,9 @@ class KeyListener:
         :param default_mod: bitmask of pygame modkeys for a new bind,
         defaults to pygame.KMOD_NONE
         """
-        if not self.key_map.get_bound_key(key_bind_name):
+        try:
+            self.key_map.get_bound_key(key_bind_name)
+        except ValueError:
             self.key_map.key_binds.setdefault(default_key, []).append(
                 KeyBind(bind_name=key_bind_name, mod=default_mod)
             )
