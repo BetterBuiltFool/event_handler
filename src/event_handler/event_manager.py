@@ -4,6 +4,7 @@ import functools
 import logging
 import threading
 from typing import Callable, Optional, Type
+from weakref import WeakSet
 
 import pygame
 
@@ -24,7 +25,7 @@ class EventManager:
         # Pygame event key, method and affected object as values
         self._class_listeners: dict[int, list[tuple[Callable, Type[object]]]] = {}
         # Registered object as key, instances of object as values
-        self._class_listener_instances: dict[Type[object], list[object]] = {}
+        self._class_listener_instances: dict[Type[object], WeakSet[object]] = {}
         # Inversion of _class_listeners. Method as key, event id as values
         self._class_listener_events: dict[Callable, list[int]] = {}
         # Assigned object as key, associated methods as values
@@ -167,7 +168,7 @@ class EventManager:
             instance = args[0]
             cls = instance.__class__
             # No need to check for the instance, each only calls this once
-            self._class_listener_instances.setdefault(cls, []).append(instance)
+            self._class_listener_instances.setdefault(cls, WeakSet()).add(instance)
             logger.debug(f"Extracted instance {instance} from {cls}")
             return init(*args, **kwds)
 
@@ -273,7 +274,7 @@ class EventManager:
             threading.Thread(target=listener, args=(event,)).start()
         methods = self._class_listeners.get(event.type, [])
         for method, cls in methods:
-            instances = self._class_listener_instances.get(cls, [])
+            instances = self._class_listener_instances.get(cls, WeakSet())
             for instance in instances:
                 threading.Thread(target=method, args=(instance, event)).start()
 
