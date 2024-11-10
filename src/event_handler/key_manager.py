@@ -428,7 +428,7 @@ class KeyListener:
                     threading.Thread(target=method, args=(instance, event)).start()
 
     @classmethod
-    def load_from_file(cls, file_path: Path, parser: FileParser) -> None:
+    def load_from_file(cls, file_path: Path, parser: Type[FileParser]) -> None:
         with open(file_path, "r") as file:
             binds = parser.load(file)
             cls.key_map.merge(binds)
@@ -437,7 +437,7 @@ class KeyListener:
     # raise NotImplementedError("This feature is not yet available")
 
     @classmethod
-    def save_to_file(cls, file_path: Path, parser: FileParser) -> None:
+    def save_to_file(cls, file_path: Path, parser: Type[FileParser]) -> None:
         with open(file_path, "w") as file:
             parser.save(cls.key_map, file)
         # raise NotImplementedError("This feature is not yet available")
