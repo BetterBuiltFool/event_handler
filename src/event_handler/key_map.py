@@ -46,16 +46,15 @@ class KeyMap:
 
         self.key_binds.setdefault(new_key, []).append(new_key_bind)
 
-    def get_bound_key(self, bind_name: str) -> tuple[int | None, int | None] | None:
+    def get_bound_key(self, bind_name: str) -> tuple[int | None, int | None]:
         """
         Finds the current key that binds to the given bind name, and
         returns it in a tuple with the bound mod keys.
 
-        If the bind is not used, returns None.
-
         :param bind_name: Name of the bind being used.
         :return: Tuple containing two ints, first representing the number for
         a pygame key, the second a bitmask int representing pygame mod keys.
+        :raises ValueError: Raised if the bind name is not found.
         """
         key: int | None
         key_bind_list: list[KeyBind]
@@ -64,7 +63,7 @@ class KeyMap:
             for key_bind in key_bind_list:
                 if key_bind.bind_name == bind_name:
                     return key, key_bind.mod
-        return None
+        raise ValueError(f"Bind name: {bind_name} not found.")
 
     def remove_bind(self, bind_name: str, key: Optional[int] = None) -> None:
         """
