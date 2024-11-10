@@ -500,9 +500,11 @@ class KeyListener:
                 for instance in instances:
                     threading.Thread(target=method, args=(instance, event)).start()
 
+    @staticmethod
     def load_from_file(self, filepath: Path) -> None:
         raise NotImplementedError("This feature is not yet available")
 
+    @staticmethod
     def save_to_file(self, location: Path) -> None:
         raise NotImplementedError("This feature is not yet available")
 
