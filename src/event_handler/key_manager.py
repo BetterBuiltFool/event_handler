@@ -138,8 +138,8 @@ class KeyListener:
         # Registered object as key, instances of object as values
         # Instances are unique, so make it a set for weak reference
         self._class_listener_instances: dict[Type[object], WeakSet[object]] = {}
-        # Inversion of _class_listeners. Method as key, event id as values
-        self._class_listener_events: dict[Callable, list[int]] = {}
+        # Inversion of _class_listeners. Method as key, bind name
+        self._class_listener_binds: dict[Callable, list[str]] = {}
         # Assigned object as key, associated methods as values
         self._assigned_classes: dict[Type[object], list[Callable]] = {}
 
@@ -333,7 +333,7 @@ class KeyListener:
         self._class_listeners.setdefault(key_bind_name, {}).setdefault(
             event_type, []
         ).append((method, cls))
-        self._class_listener_events.setdefault(method, []).append(event_type)
+        self._class_listener_binds.setdefault(method, []).append(key_bind_name)
         self._assigned_classes.setdefault(cls, []).append(method)
 
     def _modify_init(self, init: Callable) -> Callable:
@@ -390,6 +390,40 @@ class KeyListener:
             return method
 
         return decorator
+
+    def deregister_class(self, cls: Type[object]):
+        """
+        Clears all instances and methods belonging to the supplied class.
+
+        :param cls: The cls being deregistered.
+        :raises KeyError: If cls is not contained in the class listeners, this
+        error will be raised.
+        """
+        self._class_listener_instances.pop(cls, None)
+        for method in self._assigned_classes.get(cls, []):
+            self.unbind_method(method)
+        self._assigned_classes.pop(cls)
+
+    def unbind_method(self, method: Callable):
+        """
+        Clears the method from its bindings.
+
+        :param method: Method being unbound
+        """
+        for bind_name in self._class_listener_binds.get(method, []):
+            event_sets = self._class_listeners.get(bind_name, {})
+            for event_type, listener_sets in event_sets.items():
+                # We don't know the event type for the method,
+                # so we need to check all of them
+                listener_sets = list(
+                    filter(
+                        lambda listener_set: method is not listener_set[0],
+                        listener_sets,
+                    )
+                )
+                event_sets.update({event_type: listener_sets})
+            self._class_listeners.update({bind_name: event_sets})
+        self._class_listener_binds.pop(method)
 
     def clear_bind(self, bind_name: str, eliminate_bind: bool = False) -> None:
         """
