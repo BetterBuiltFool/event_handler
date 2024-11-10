@@ -18,14 +18,17 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 class FileParser(ABC):
 
+    @staticmethod
     @abstractmethod
-    def load(self, in_file: TextIO) -> KeyMap: ...
+    def load(in_file: TextIO) -> KeyMap: ...
 
+    @staticmethod
     @abstractmethod
-    def save(self, key_map: KeyMap, out_file: TextIO) -> None: ...
+    def save(key_map: KeyMap, out_file: TextIO) -> None: ...
 
+    @staticmethod
     @abstractmethod
-    def unpack_binds(self, maps: dict) -> KeyMap: ...
+    def unpack_binds(maps: dict) -> KeyMap: ...
 
 
 class KeyListener:

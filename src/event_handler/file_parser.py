@@ -9,16 +9,18 @@ import pygame
 
 class JSONParser(FileParser):
 
-    def load(self, in_file: TextIO) -> KeyMap:
-        # with open(self.file_path, "r") as file:
+    @staticmethod
+    def load(in_file: TextIO) -> KeyMap:
         maps = json.load(in_file)
-        return self.unpack_binds(maps)
+        return JSONParser.unpack_binds(maps)
 
-    def save(self, key_map: KeyMap, out_file: TextIO) -> None:
+    @staticmethod
+    def save(key_map: KeyMap, out_file: TextIO) -> None:
         maps = key_map.pack_binds()
         json.dump(maps, out_file)
 
-    def unpack_binds(self, maps: dict) -> KeyMap:
+    @staticmethod
+    def unpack_binds(maps: dict) -> KeyMap:
         unpacked_dict: dict[int | None, list[KeyBind]] = {}
         for key_name, bind_list in maps.items():
             key_code = None
