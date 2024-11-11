@@ -150,7 +150,7 @@ class TestJSONParser(unittest.TestCase):
 
         packed = keymap.pack_binds()
 
-        unpacked = JSONParser.unpack_binds(packed).key_binds
+        unpacked = JSONParser._unpack_binds(packed)
 
         comp_dict = {
             pygame.K_0: [

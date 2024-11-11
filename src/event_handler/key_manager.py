@@ -28,7 +28,7 @@ class FileParser(ABC):
 
     @staticmethod
     @abstractmethod
-    def unpack_binds(maps: dict) -> KeyMap: ...
+    def _unpack_binds(maps: dict) -> dict: ...
 
 
 class KeyListener:

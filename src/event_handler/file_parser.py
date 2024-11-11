@@ -18,7 +18,9 @@ class JSONParser(FileParser):
         :return: Created KeyMap
         """
         maps = json.load(in_file)
-        return JSONParser.unpack_binds(maps)
+        key_map = KeyMap()
+        key_map.key_binds = JSONParser._unpack_binds(maps)
+        return key_map
 
     @staticmethod
     def save(key_map: KeyMap, out_file: TextIO) -> None:
@@ -32,7 +34,7 @@ class JSONParser(FileParser):
         json.dump(maps, out_file)
 
     @staticmethod
-    def unpack_binds(maps: dict) -> KeyMap:
+    def _unpack_binds(maps: dict) -> dict:
         """
         Converts the JSON-styled dict into a dict compatible with a KeyMap
 
@@ -46,6 +48,4 @@ class JSONParser(FileParser):
                 key_code = pygame.key.key_code(key_name)
             binds = [KeyBind(bind_name=bind[0], mod=bind[1]) for bind in bind_list]
             unpacked_dict.update({key_code: binds})
-        key_map = KeyMap()
-        key_map.key_binds = unpacked_dict
-        return key_map
+        return unpacked_dict
