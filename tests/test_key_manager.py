@@ -1,3 +1,4 @@
+from io import StringIO
 import pathlib
 import sys
 import threading
@@ -16,6 +17,10 @@ from src.event_handler.key_manager import (  # noqa: E402
 from src.event_handler.key_map import (  # noqa: E402
     KeyBind,
     KeyMap,
+)
+
+from src.event_handler.file_parser import (  # noqa: E402
+    JSONParser,
 )
 
 
@@ -131,6 +136,77 @@ class TestKeyMap(unittest.TestCase):
         }
 
         self.assertDictEqual(packed_dict, comp_dict)
+
+
+class TestJSONParser(unittest.TestCase):
+
+    def test_unpack_binds(self) -> None:
+
+        keymap = KeyMap()
+
+        for i in range(3):
+            keymap.generate_bind(f"bind{i}", pygame.K_0)
+        keymap.generate_bind("bind3", None)
+
+        packed = keymap.pack_binds()
+
+        unpacked = JSONParser.unpack_binds(packed).key_binds
+
+        comp_dict = {
+            pygame.K_0: [
+                KeyBind("bind0", None),
+                KeyBind("bind1", None),
+                KeyBind("bind2", None),
+            ],
+            None: [("bind3", None)],
+        }
+
+        self.assertDictEqual(unpacked, comp_dict)
+
+    def test_save(self) -> None:
+
+        keymap = KeyMap()
+
+        for i in range(3):
+            keymap.generate_bind(f"bind{i}", pygame.K_0)
+        keymap.generate_bind("bind3", None)
+
+        outfile = StringIO()
+
+        JSONParser.save(keymap, outfile)
+
+        outfile.seek(0)
+
+        json_string = (
+            r'{"0": [["bind0", null], ["bind1", null], ["bind2", null]],'
+            r' "null": [["bind3", null]]}'
+        )
+
+        self.assertEqual(outfile.read(), json_string)
+
+    def test_load(self) -> None:
+
+        keymap = KeyMap()
+
+        for i in range(3):
+            keymap.generate_bind(f"bind{i}", pygame.K_0)
+        keymap.generate_bind("bind3", None)
+
+        json_string = (
+            r'{"0": [["bind0", null], ["bind1", null], ["bind2", null]],'
+            + r' "null": [["bind3", null]]}'
+        )
+
+        print(json_string)
+
+        infile = StringIO()
+        infile.write(json_string)
+        infile.seek(0)
+
+        new_map = JSONParser.load(infile)
+
+        for key in new_map.key_binds:
+            self.assertEqual(new_map.key_binds.get(key), keymap.key_binds.get(key))
 
 
 class TestKeyListener(unittest.TestCase):
