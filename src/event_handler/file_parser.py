@@ -11,16 +11,34 @@ class JSONParser(FileParser):
 
     @staticmethod
     def load(in_file: TextIO) -> KeyMap:
+        """
+        Converts the given JSON file into a KeyMap
+
+        :param in_file: Target file with the required data.
+        :return: Created KeyMap
+        """
         maps = json.load(in_file)
         return JSONParser.unpack_binds(maps)
 
     @staticmethod
     def save(key_map: KeyMap, out_file: TextIO) -> None:
+        """
+        Saves the KeyMap as a JSON string
+
+        :param key_map: KeyMap object being saved
+        :param out_file: File receiving the data
+        """
         maps = key_map.pack_binds()
         json.dump(maps, out_file)
 
     @staticmethod
     def unpack_binds(maps: dict) -> KeyMap:
+        """
+        Converts the JSON-styled dict into a dict compatible with a KeyMap
+
+        :param maps: JSON-style dictionary of keybinds
+        :return: Dictionary compatible with KeyMap
+        """
         unpacked_dict: dict[int | None, list[KeyBind]] = {}
         for key_name, bind_list in maps.items():
             key_code = None

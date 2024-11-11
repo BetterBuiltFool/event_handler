@@ -38,23 +38,9 @@ class KeyListener:
     def __init__(self, handle: str) -> None:
         self.handle: str = handle
 
-        # Workflow:
-        # Key event -> send key to key map
-        # Key map -> bind name, mod keys
-        # Check mod keys, bind name -> dict w/ event types
-        # Feed event type -> get callable
-        # Call the callable
-
         # --------Basic function assignment--------
         # Meta dict, string bind name as key, then event type as key to get callable
         self._key_hooks: dict[str, dict[int, list[Callable]]] = {}
-
-        # Workflow:
-        # Key event -> send key to key map
-        # Key map -> bind name, mod keys
-        # Check mod keys, bind name -> dict w/ event types
-        # Feed event type -> get callable
-        # Call the callable
 
         # --------Class method assignment--------
         # Meta dict, string bind name as key, then Pygame event key, method and
@@ -381,6 +367,11 @@ class KeyListener:
             class_call_list.clear()
 
     def notify(self, event: pygame.Event) -> None:
+        """
+        Calls all registered functions and methods that make use of the given event
+
+        :param event: pygame event to be passed to the callables
+        """
         key_changed: int | None = getattr(event, "key", None)
         mod_keys: int | None = getattr(event, "mod", None)
         key_binds = self.key_map.key_binds.get(key_changed, [])
@@ -407,18 +398,32 @@ class KeyListener:
 
     @classmethod
     def load_from_file(cls, file_path: Path, parser: Type[FileParser]) -> None:
+        """
+        Pulls the file from the file path, and uses the supplied parser to convert the
+        file into a KeyMap, which is merged with the current KeyMap.
+
+        Binds in the current KeyMap that don't exist in the loaded KeyMap do not change,
+        all others are updated to reflect the loaded binds
+
+        :param file_path: path to the file to be loaded
+        :param parser: Parser to be used to decode the file.
+        Use one that matches the data structure
+        """
         with open(file_path, "r") as file:
             binds = parser.load(file)
             cls.key_map.merge(binds)
 
-    # cls.key_map.key_binds.update(binds.key_binds)
-    # raise NotImplementedError("This feature is not yet available")
-
     @classmethod
     def save_to_file(cls, file_path: Path, parser: Type[FileParser]) -> None:
+        """
+        Saves the current KeyMap to a file in the requested location.
+        Expects the file name and extension to be included.
+
+        :param file_path: Path to the file being saved to
+        :param parser: Parser used to encode the file.
+        """
         with open(file_path, "w") as file:
             parser.save(cls.key_map, file)
-        # raise NotImplementedError("This feature is not yet available")
 
 
 def notifyKeyListeners(event: pygame.Event) -> None:
@@ -432,4 +437,10 @@ def notifyKeyListeners(event: pygame.Event) -> None:
 
 
 def getKeyListener(handle: str) -> KeyListener:
+    """
+    Supplies a Key Listener with the given handle. If one exists with that handle,
+    the existing Key Listener is given. Otherwise, a new one is created.
+
+    :param handle: String describing the KeyListener.
+    """
     return KeyListener._listeners.setdefault(handle, KeyListener(handle))
