@@ -93,7 +93,7 @@ class KeyListener:
         mod keys to be pressed. If using multiple, use bitwise OR to combine, defaults
         to None
         """
-        self._generate_bind(key_bind_name, default_key, default_mod)
+        self.key_map.generate_bind(key_bind_name, default_key, default_mod)
 
         def decorator(responder: Callable) -> Callable:
             # Regardless, add the responder to the bind within our hook dict
@@ -255,7 +255,7 @@ class KeyListener:
         logger.debug("Found method assigned to self. Registering.")
         logger.debug(f"Registering {method} to {pygame.event.event_name(event_type)}")
 
-        self._generate_bind(key_bind_name, default_key, default_mod)
+        self.key_map.generate_bind(key_bind_name, default_key, default_mod)
 
         self._class_listeners.setdefault(key_bind_name, {}).setdefault(
             event_type, []
@@ -379,30 +379,6 @@ class KeyListener:
         if class_call_list:
             logger.info(f"Clearing all methods from bind {bind_name}")
             class_call_list.clear()
-
-    def _generate_bind(
-        self,
-        key_bind_name: str,
-        default_key: Optional[int] = None,
-        default_mod: Optional[int] = None,
-    ) -> None:
-        """
-        Looks for a bind matching the given name.
-        Creates the bind if it does not exist.
-        Does not overwrite the key of an existing bind.
-
-        :param key_bind_name: Name assigned to the bind.
-        :param default_key: Pygame key code assigned to a new bind,
-        defaults to None
-        :param default_mod: bitmask of pygame modkeys for a new bind,
-        defaults to pygame.KMOD_NONE
-        """
-        try:
-            self.key_map.get_bound_key(key_bind_name)
-        except ValueError:
-            self.key_map.key_binds.setdefault(default_key, []).append(
-                KeyBind(bind_name=key_bind_name, mod=default_mod)
-            )
 
     def notify(self, event: pygame.Event) -> None:
         key_changed: int | None = getattr(event, "key", None)

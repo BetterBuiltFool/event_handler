@@ -65,6 +65,30 @@ class KeyMap:
                     return key, key_bind.mod
         raise ValueError(f"Bind name: {bind_name} not found.")
 
+    def generate_bind(
+        self,
+        key_bind_name: str,
+        default_key: Optional[int] = None,
+        default_mod: Optional[int] = None,
+    ) -> None:
+        """
+        Looks for a bind matching the given name.
+        Creates the bind if it does not exist.
+        Does not overwrite the key of an existing bind.
+
+        :param key_bind_name: Name assigned to the bind.
+        :param default_key: Pygame key code assigned to a new bind,
+        defaults to None
+        :param default_mod: bitmask of pygame modkeys for a new bind,
+        defaults to pygame.KMOD_NONE
+        """
+        try:
+            self.get_bound_key(key_bind_name)
+        except ValueError:
+            self.key_binds.setdefault(default_key, []).append(
+                KeyBind(bind_name=key_bind_name, mod=default_mod)
+            )
+
     def remove_bind(self, bind_name: str, key: Optional[int] = None) -> None:
         """
         Eliminates the specified bind from the specified key, or all instances
