@@ -10,9 +10,12 @@ sys.path.append(str(pathlib.Path.cwd()))
 
 from src.event_handler.key_manager import (  # noqa: E402
     getKeyListener,
+    KeyListener,
+)
+
+from src.event_handler.key_map import (  # noqa: E402
     KeyBind,
     KeyMap,
-    KeyListener,
 )
 
 
@@ -24,38 +27,42 @@ class TestKeyMap(unittest.TestCase):
     def tearDown(self) -> None:
         self.keymap.key_binds.clear()
 
+    def test_generate_bind(self):
+        bind_name = "test_bind"
+        key = pygame.K_9
+        mod = pygame.KMOD_ALT
+
+        self.keymap.generate_bind(bind_name, key, mod)
+
+        test_bind = KeyBind(bind_name, mod)
+        self.assertIn(test_bind, self.keymap.key_binds.get(key, []))
+
     def test_rebind(self) -> None:
         bind_name = "test_bind"
         start_key = pygame.K_9
         start_mod = pygame.KMOD_ALT
         test_bind = KeyBind(bind_name=bind_name, mod=start_mod)
 
-        self.keymap.key_binds.setdefault(start_key, []).append(test_bind)
+        self.keymap.generate_bind(bind_name, start_key, start_mod)
 
         new_key = pygame.K_0
 
         self.keymap.rebind(test_bind, new_key)
 
-        self.assertNotIn(
-            test_bind, cast(list[KeyBind], self.keymap.key_binds.get(start_key))
-        )
-        self.assertIn(
-            test_bind, cast(list[KeyBind], self.keymap.key_binds.get(new_key))
-        )
+        self.assertNotIn(test_bind, self.keymap.key_binds.get(start_key, []))
+        self.assertIn(test_bind, self.keymap.key_binds.get(new_key, []))
 
     def test_get_bound_key(self) -> None:
         bind_name = "test_bind"
         start_key = pygame.K_9
         start_mod = pygame.KMOD_ALT
-        test_bind = KeyBind(bind_name=bind_name, mod=start_mod)
 
-        self.keymap.key_binds.setdefault(start_key, []).append(test_bind)
+        self.keymap.generate_bind(bind_name, start_key, start_mod)
 
         key, mod = cast(tuple[int | None, int], self.keymap.get_bound_key(bind_name))
-        empty = self.keymap.get_bound_key("unbound_name")
+        self.assertRaises(ValueError, self.keymap.get_bound_key, "unbound_name")
         self.assertEqual(key, start_key)
         self.assertEqual(start_mod, mod)
-        self.assertIsNone(empty)
 
     def test_remove_bind(self) -> None:
         bind_name = "test_bind"
@@ -63,7 +70,7 @@ class TestKeyMap(unittest.TestCase):
         start_mod = pygame.KMOD_ALT
         test_bind = KeyBind(bind_name=bind_name, mod=start_mod)
 
-        self.keymap.key_binds.setdefault(start_key, []).append(test_bind)
+        self.keymap.generate_bind(bind_name, start_key, start_mod)
 
         new_key = pygame.K_0
 
@@ -86,6 +93,44 @@ class TestKeyMap(unittest.TestCase):
         self.assertNotIn(
             test_bind, cast(list[KeyBind], self.keymap.key_binds.get(new_key))
         )
+
+    def test_merge(self) -> None:
+        other_map = KeyMap()
+
+        for i in range(3):
+            self.keymap.generate_bind(f"bind{i}", pygame.K_0)
+
+        for i in range(2, 5):
+            other_map.generate_bind(f"bind{i}", pygame.K_1)
+
+        self.keymap.merge(other_map)
+
+        expected_key = pygame.K_0
+        try:
+            for i in range(5):
+                key = pygame.K_0 if i < 2 else pygame.K_1
+                expected_key = key
+                self.assertEqual(key, self.keymap.get_bound_key(f"bind{i}")[0])
+        except ValueError:
+            self.fail(
+                f"Expected key {pygame.key.name(expected_key)}, "
+                f"but couldn't find 'bind{i}'"
+            )
+
+    def test_pack_binds(self) -> None:
+
+        for i in range(3):
+            self.keymap.generate_bind(f"bind{i}", pygame.K_0)
+        self.keymap.generate_bind("bind3", None)
+
+        packed_dict = self.keymap.pack_binds()
+
+        comp_dict = {
+            "0": [("bind0", None), ("bind1", None), ("bind2", None)],
+            "null": [("bind3", None)],
+        }
+
+        self.assertDictEqual(packed_dict, comp_dict)
 
 
 class TestKeyListener(unittest.TestCase):
