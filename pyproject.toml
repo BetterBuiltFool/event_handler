@@ -1,8 +1,15 @@
+[build-system]
+requires = [ "setuptools>=41", "wheel", "setuptools-git-versioning>=2.0,<3", ]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools-git-versioning]
+enabled = true
+
 [project]
 name = "event_handler"
 dynamic = ["version"]
 authors = [
-    { name="BetterBuiltFool", email="NoneYet@notavailable.com"}
+    { name="BetterBuiltFool", email="betterbuiltfool@gmail.com"}
 ]
 description = "A simple decorator-based event handler and key bind system for use with pygame"
 readme = "README.md"
