@@ -1,107 +1,34 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from abc import ABC, abstractmethod
 import functools
 import logging
 from pathlib import Path
 import threading
-from typing import Callable, NamedTuple, Optional, Type
+from typing import Callable, Optional, TextIO, Type
 from weakref import WeakSet
+
+# import file_parser
+from .key_map import KeyBind, KeyMap
 
 import pygame
 
 logger: logging.Logger = logging.getLogger(__name__)
 
-KeyBind = NamedTuple("KeyBind", [("bind_name", str), ("mod", int | None)])
 
+class FileParser(ABC):
 
-@dataclass
-class KeyMap:
-    """
-    A dictionary of keybind events with associated keys.
-    """
+    @staticmethod
+    @abstractmethod
+    def load(in_file: TextIO) -> KeyMap: ...
 
-    key_binds: dict[int | None, list[KeyBind]] = field(default_factory=dict)
+    @staticmethod
+    @abstractmethod
+    def save(key_map: KeyMap, out_file: TextIO) -> None: ...
 
-    def rebind(self, new_key_bind: KeyBind, new_key: Optional[int] = None) -> None:
-        """
-        Takes the given keybind, unbinds it from its current key, and rebinds
-        it to the given key. If no key is given, it is put under None, meaning
-        the hook is regarded as unbound, and cannot be called.
-
-        :param new_key_bind: Keybind containing the bind name and mod keys.
-        :param new_key: Pygame key id, defaults to None
-        """
-        for key_bind_list in self.key_binds.values():
-            binds_to_remove: list[KeyBind] = []
-            key_bind: KeyBind
-            for key_bind in key_bind_list:
-                if key_bind.bind_name == new_key_bind.bind_name:
-                    # Can't directly remove in the loop, could skip one.
-                    binds_to_remove.append(key_bind)
-            removed_bind: KeyBind
-            for removed_bind in binds_to_remove:
-                key_bind_list.remove(removed_bind)
-
-        self.key_binds.setdefault(new_key, []).append(new_key_bind)
-
-    def get_bound_key(self, bind_name: str) -> tuple[int | None, int | None] | None:
-        """
-        Finds the current key that binds to the given bind name, and
-        returns it in a tuple with the bound mod keys.
-
-        If the bind is not used, returns None.
-
-        :param bind_name: Name of the bind being used.
-        :return: Tuple containing two ints, first representing the number for
-        a pygame key, the second a bitmask int representing pygame mod keys.
-        """
-        key: int | None
-        key_bind_list: list[KeyBind]
-        key_bind: KeyBind
-        for key, key_bind_list in self.key_binds.items():
-            for key_bind in key_bind_list:
-                if key_bind.bind_name == bind_name:
-                    return key, key_bind.mod
-        return None
-
-    def remove_bind(self, bind_name: str, key: Optional[int] = None) -> None:
-        """
-        Eliminates the specified bind from the specified key, or all instances
-        if no key is specified.
-
-        :param bind_name: Name of the bind being removed
-        :param key: Integer of pygame key code to search, defaults to None
-        """
-        key_bind_list: list[KeyBind] | None
-        if key is not None:
-            key_bind_list = self.key_binds.get(key, None)
-            if not key_bind_list:
-                logger.warning(
-                    f" Cannot remove '{bind_name}';"
-                    f" {pygame.key.name(key)} does not have any binds."
-                )
-                return
-            to_remove: list[KeyBind] = []
-            for key_bind in key_bind_list:
-                if key_bind.bind_name == bind_name:
-                    to_remove.append(key_bind)
-            for item in to_remove:
-                key_bind_list.remove(item)
-            if not to_remove:
-                logger.warning(
-                    f" Cannot remove '{bind_name}';"
-                    f" bind does not exist in {pygame.key.name(key)}"
-                )
-            return
-        for key_bind_list in self.key_binds.values():
-            to_remove = []
-            for key_bind in key_bind_list:
-                if key_bind.bind_name == bind_name:
-                    to_remove.append(key_bind)
-            for item in to_remove:
-                key_bind_list.remove(item)
-        return None
+    @staticmethod
+    @abstractmethod
+    def _unpack_binds(maps: dict) -> dict: ...
 
 
 class KeyListener:
@@ -111,23 +38,9 @@ class KeyListener:
     def __init__(self, handle: str) -> None:
         self.handle: str = handle
 
-        # Workflow:
-        # Key event -> send key to key map
-        # Key map -> bind name, mod keys
-        # Check mod keys, bind name -> dict w/ event types
-        # Feed event type -> get callable
-        # Call the callable
-
         # --------Basic function assignment--------
         # Meta dict, string bind name as key, then event type as key to get callable
         self._key_hooks: dict[str, dict[int, list[Callable]]] = {}
-
-        # Workflow:
-        # Key event -> send key to key map
-        # Key map -> bind name, mod keys
-        # Check mod keys, bind name -> dict w/ event types
-        # Feed event type -> get callable
-        # Call the callable
 
         # --------Class method assignment--------
         # Meta dict, string bind name as key, then Pygame event key, method and
@@ -166,7 +79,7 @@ class KeyListener:
         mod keys to be pressed. If using multiple, use bitwise OR to combine, defaults
         to None
         """
-        self._generate_bind(key_bind_name, default_key, default_mod)
+        self.key_map.generate_bind(key_bind_name, default_key, default_mod)
 
         def decorator(responder: Callable) -> Callable:
             # Regardless, add the responder to the bind within our hook dict
@@ -328,7 +241,7 @@ class KeyListener:
         logger.debug("Found method assigned to self. Registering.")
         logger.debug(f"Registering {method} to {pygame.event.event_name(event_type)}")
 
-        self._generate_bind(key_bind_name, default_key, default_mod)
+        self.key_map.generate_bind(key_bind_name, default_key, default_mod)
 
         self._class_listeners.setdefault(key_bind_name, {}).setdefault(
             event_type, []
@@ -453,29 +366,12 @@ class KeyListener:
             logger.info(f"Clearing all methods from bind {bind_name}")
             class_call_list.clear()
 
-    def _generate_bind(
-        self,
-        key_bind_name: str,
-        default_key: Optional[int] = None,
-        default_mod: Optional[int] = None,
-    ) -> None:
-        """
-        Looks for a bind matching the given name.
-        Creates the bind if it does not exist.
-        Does not overwrite the key of an existing bind.
-
-        :param key_bind_name: Name assigned to the bind.
-        :param default_key: Pygame key code assigned to a new bind,
-        defaults to None
-        :param default_mod: bitmask of pygame modkeys for a new bind,
-        defaults to pygame.KMOD_NONE
-        """
-        if not self.key_map.get_bound_key(key_bind_name):
-            self.key_map.key_binds.setdefault(default_key, []).append(
-                KeyBind(bind_name=key_bind_name, mod=default_mod)
-            )
-
     def notify(self, event: pygame.Event) -> None:
+        """
+        Calls all registered functions and methods that make use of the given event
+
+        :param event: pygame event to be passed to the callables
+        """
         key_changed: int | None = getattr(event, "key", None)
         mod_keys: int | None = getattr(event, "mod", None)
         key_binds = self.key_map.key_binds.get(key_changed, [])
@@ -500,13 +396,34 @@ class KeyListener:
                 for instance in instances:
                     threading.Thread(target=method, args=(instance, event)).start()
 
-    @staticmethod
-    def load_from_file(self, filepath: Path) -> None:
-        raise NotImplementedError("This feature is not yet available")
+    @classmethod
+    def load_from_file(cls, file_path: Path, parser: Type[FileParser]) -> None:
+        """
+        Pulls the file from the file path, and uses the supplied parser to convert the
+        file into a KeyMap, which is merged with the current KeyMap.
 
-    @staticmethod
-    def save_to_file(self, location: Path) -> None:
-        raise NotImplementedError("This feature is not yet available")
+        Binds in the current KeyMap that don't exist in the loaded KeyMap do not change,
+        all others are updated to reflect the loaded binds
+
+        :param file_path: path to the file to be loaded
+        :param parser: Parser to be used to decode the file.
+        Use one that matches the data structure
+        """
+        with open(file_path, "r") as file:
+            binds = parser.load(file)
+            cls.key_map.merge(binds)
+
+    @classmethod
+    def save_to_file(cls, file_path: Path, parser: Type[FileParser]) -> None:
+        """
+        Saves the current KeyMap to a file in the requested location.
+        Expects the file name and extension to be included.
+
+        :param file_path: Path to the file being saved to
+        :param parser: Parser used to encode the file.
+        """
+        with open(file_path, "w") as file:
+            parser.save(cls.key_map, file)
 
 
 def notifyKeyListeners(event: pygame.Event) -> None:
@@ -520,4 +437,10 @@ def notifyKeyListeners(event: pygame.Event) -> None:
 
 
 def getKeyListener(handle: str) -> KeyListener:
+    """
+    Supplies a Key Listener with the given handle. If one exists with that handle,
+    the existing Key Listener is given. Otherwise, a new one is created.
+
+    :param handle: String describing the KeyListener.
+    """
     return KeyListener._listeners.setdefault(handle, KeyListener(handle))
