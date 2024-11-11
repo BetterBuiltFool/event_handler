@@ -31,10 +31,12 @@
 
 <!-- PROJECT LOGO -->
 <br />
+<!--
 <div align="center">
   <a href="https://github.com/BetterBuiltFool/event_handler">
     <img src="images/logo.png" alt="Logo" width="80" height="80">
   </a>
+-->
 
 <h3 align="center">Event Handler</h3>
 
@@ -44,8 +46,10 @@
     <a href="https://github.com/BetterBuiltFool/event_handler"><strong>Explore the docs »</strong></a>
     <br />
     <br />
+    <!--
     <a href="https://github.com/BetterBuiltFool/event_handler">View Demo</a>
     ·
+    -->
     <a href="https://github.com/BetterBuiltFool/event_handler/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
     ·
     <a href="https://github.com/BetterBuiltFool/event_handler/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
@@ -60,11 +64,6 @@
   <ol>
     <li>
       <a href="#about-the-project">About The Project</a>
-      <!--
-      <ul>
-        <li><a href="#built-with">Built With</a></li>
-      </ul>
-      -->
     </li>
     <li>
       <a href="#getting-started">Getting Started</a>
@@ -76,6 +75,7 @@
       <ul>
         <li><a href="#event-manager">Event Manager</a></li>
         <li><a href="#key-listener">Key Listener</a></li>
+        <li><a href="#key-maps">Key Maps</a></li>
         <li><a href="#passing-events-to-the-managers">Passing Events to the Managers</a></li>
         <li><a href="#concurrency">Concurrency</a></li>
       </ul>
@@ -99,41 +99,28 @@
 Event Handler is a simple system that uses decorator syntax to register functions to Pygame events, allowing those function to be fired whenever the assigned event occurs.
 It also features a keybind manager, which similarly can assign functions to remappable keybinds.
 
-<!--
-TODO: Remove extraneous template info
-
-Here's a blank template to get started: To avoid retyping too much info. Do a search and replace with your text editor for the following: `github_username`, `repo_name`, `twitter_handle`, `linkedin_username`, `email_client`, `email`, `project_title`, `project_description`
--->
-
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-<!--
-### Built With
-
-* [![Python][python.org]][python-url]
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
--->
 
 
 <!-- GETTING STARTED -->
 ## Getting Started
 
-Event_handler is written in pure python, with no system dependencies, and should be OS-agnostic.
+Event handler is written in pure python, with no system dependencies, and should be OS-agnostic.
 
 ### Installation
 
-event_handler can be installed from the [PyPI][pypi-url] using [pip][pip-url]:
+Event handler can be installed from the [PyPI][pypi-url] using [pip][pip-url]:
 
-  ```sh
-  pip install event_handler
-  ```
+```sh
+pip install event_handler
+```
 
 and can be imported for use with:
-  ```python
-  import event_handler
-  ```
+```python
+import event_handler
+```
+
+Event handler also require Pygame Community edition to be installed.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -144,7 +131,9 @@ and can be imported for use with:
 
 EventManagers and KeyListeners are instantiated like loggers from the built-in python logging library.
 
+<!--
 _For more examples, please refer to the [Documentation](https://example.com)_
+-->
 
 ### Event Manager
 
@@ -224,6 +213,8 @@ Methods cannot be late registered, unlike regular callables. Classes can be late
 
 For more information on Pygame events, including a list of event type with descriptions, see [here](https://www.pygame.org/docs/ref/event.html)
 
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 ### Key Listener
 
 ```python
@@ -276,15 +267,56 @@ def func2(_):
 
 In this example, pressing the "o" key will activate both functions, even though func2 asks for Ctrl+Z.
 
-Binds may be reassigned at any time.
-
-```python
-KEYBINDS.rebind("example2", pygame.ESCAPE)
-```
-
-Now, both functions will be called whenever the escape key is pressed. The rebind function also returns the previous key bind information, if it needs to be captured.
+Key Listeners also work with classes and methods, following similar syntax as the Event Manager.
 
 For more information on pygame and key handling, including a list of key names, see [here](https://www.pygame.org/docs/ref/key.html)
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+### Key Maps
+
+Key Listeners rely on the Key Map to determine which binds to call when a key is pressed. Every Key Listener uses the same Key Map.
+
+Key Maps can be modified via a Key Listener.
+
+```python
+import event_handler
+
+KEYBINDS = event_handler.getKeyListener("Remapper")
+@KEYBINDS.bind("example_name", pygame.K_p, pygame.KMOD_SHIFT)
+def some_function(_):
+    ...
+
+KEYBINDS.rebind("example_name", pygame.K_m, pygame.KMOD_ALT)
+```
+
+This changes the key for all functions bound to "example_name" get called when Alt+M is pressed instead of Shift+P.
+
+Key Maps can also be saved and loaded from file. This requires a path to the desired file location, including the file name and extension, and a File Parser to convert the data. The File Parser is a static type, and can be passed directly without be instantiated.
+
+```python
+import event_handler
+
+KEYBINDS = event_handler.getKeyListener("Saveloader")
+
+KEYBINDS.save_to_file("path/to/the/file.json", JSONParser)
+```
+
+In this case, the current KeyMap will be saved to file.json, and will use the JSON format.
+
+A Key Map can be loaded similarly.
+
+```python
+import event_handler
+
+KEYBINDS = event_handler.getKeyListener("Saveloader")
+
+KEYBINDS.load_from_file("path/to/source/key_binds.json", JSONParser)
+```
+
+This will try to load key_binds.json and merge the key binds into the current Key Map. The loaded key binds take precedence over existing ones, but if a key bind exists in the current map but not the loaded one, it is carried over without modification.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### Passing Events to the Managers
 
@@ -338,6 +370,8 @@ while game_is_running:
 The programmer must track the managers and is responsible for feeding them the events. This allows greater control over if and when a given manager is activated.
 For example, it may be desirable to have a manager that handles menu functions, and another gameplay functions. This way, the game loop can test for game state, and run only the menu functions when in menu, and only gameplay functions while playing.
 
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 ### Concurrency
 
 In the current version, functions are called using Python's threading library. This means that the called functions can be blocked, such as by using time.sleep, without blocking the rest of the program.
@@ -354,7 +388,7 @@ Making this optional is a future feature.
 ## Roadmap
 
 - [ ] Allow for both concurrent and sequential function calls.
-- [ ] Allow for saving/loading keymaps via the file system.
+- [X] Allow for saving/loading keymaps via the file system.
 <!--
 - [ ] Feature 2
 - [ ] Feature 3
@@ -405,7 +439,10 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 <!-- CONTACT -->
 ## Contact
 
-Better Built Fool - betterbuiltfool@gmail.com <!-- - [@twitter_handle](https://twitter.com/twitter_handle) - email@email_client.com
+Better Built Fool - betterbuiltfool@gmail.com
+<!--
+ - [@twitter_handle](https://twitter.com/twitter_handle) - email@email_client.com
+-->
 
 Project Link: [https://github.com/BetterBuiltFool/event_handler](https://github.com/BetterBuiltFool/event_handler)
 
