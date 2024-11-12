@@ -20,13 +20,12 @@ class BaseManager(ABC):
     def sequential(self, func: Callable) -> Callable:
         """
         Marks a function as to be run sequentially.
-        Removes a concurrent mark if one exists.
 
-        :param func: The function to be tagger
+        :param func: The function to be tagged
         :return: the tagged function
         """
-        if hasattr(func, "_runs_concurrent"):
-            delattr(func, "_runs_concurrent")
+        # None is smallest data type at 16 bytes
+        # Lowest impact from being attached long term.
         setattr(func, "_runs_sequential", None)
         return func
 
@@ -35,12 +34,11 @@ class BaseManager(ABC):
         Marks a function as to be run concurrently via threading.
         Removes a sequential mark if one exists.
 
-        :param func: The function to be tagger
-        :return: the tagged function
+        :param func: The function to be cleared
+        :return: the cleared function
         """
         if hasattr(func, "_runs_sequential"):
             delattr(func, "_runs_sequential")
-        setattr(func, "_runs_concurrent", None)
         return func
 
     def register_class(self, cls: Type[object]) -> Type[object]:
@@ -71,6 +69,14 @@ class BaseManager(ABC):
 
     @abstractmethod
     def notify(self, event: pygame.Event) -> None: ...
+
+    @abstractmethod
+    def _add_instance(self, cls: Type[object], instance: object) -> None: ...
+
+    @abstractmethod
+    def _capture_method(
+        self, cls: Type[object], method: Callable, tag_data: tuple
+    ) -> None: ...
 
     def _tag_method(self, method: Callable, tag_data: tuple) -> Callable:
         """
@@ -123,14 +129,6 @@ class BaseManager(ABC):
         # from the method.
         for index in reversed(_indexes_to_remove):
             managers.pop(index)
-
-    @abstractmethod
-    def _capture_method(
-        self, cls: Type[object], method: Callable, tag_data: tuple
-    ) -> None: ...
-
-    @abstractmethod
-    def _add_instance(self, cls: Type[object], instance: object) -> None: ...
 
     def _modify_init(self, init: Callable) -> Callable:
         """
