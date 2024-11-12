@@ -1,39 +1,41 @@
 from __future__ import annotations
 
-import functools
 import logging
 import threading
 from typing import Callable, Optional, Type
 from weakref import WeakSet
+
+from .base_manager import BaseManager
 
 import pygame
 
 logger: logging.Logger = logging.getLogger(__name__)
 
 
-class EventManager:
+class EventManager(BaseManager):
     handlers: dict[str, EventManager] = {}
 
     def __init__(self, handle: str) -> None:
-        self.handle: str = handle
+        super().__init__(handle)
 
         # --------Basic function assignment--------
         # Pygame event as key, list of functions as values
-        self._listeners: dict[int, list[Callable]] = {}
+        self._listeners: dict[int, dict[bool, list[Callable]]] = {}
 
         # --------Class method assignment--------
         # Pygame event key, method and affected object as values
-        self._class_listeners: dict[int, list[tuple[Callable, Type[object]]]] = {}
-        # Registered object as key, instances of object as values
-        self._class_listener_instances: dict[Type[object], WeakSet[object]] = {}
+        self._class_listeners: dict[
+            int, dict[bool, list[tuple[Callable, Type[object]]]]
+        ] = {}
         # Inversion of _class_listeners. Method as key, event id as values
         self._class_listener_events: dict[Callable, list[int]] = {}
-        # Assigned object as key, associated methods as values
-        self._assigned_classes: dict[Type[object], list[Callable]] = {}
 
     def register(self, event_type: int) -> Callable:
         def decorator(listener: Callable) -> Callable:
-            self._listeners.setdefault(event_type, []).append(listener)
+            is_concurrent = not hasattr(listener, "_runs_sequential")
+            event_dict = self._listeners.setdefault(event_type, {})
+            concurrency_list = event_dict.setdefault(is_concurrent, [])
+            concurrency_list.append(listener)
             return listener
 
         return decorator
@@ -49,130 +51,62 @@ class EventManager:
         """
         call_list: list[Callable] | None
         if event_type is not None:
-            call_list = self._listeners.get(event_type)
-            if not call_list:
+            event_dict = self._listeners.get(event_type)
+            if not event_dict:
                 logger.warning(
                     "No functions are registered to "
                     f"{pygame.event.event_name(event_type)}"
                 )
                 return
-            if func not in call_list:
+            found = False
+            for call_list in event_dict.values():
+                if func not in call_list:
+                    continue
+                found = True
+                call_list.remove(func)
+            if not found:
                 logger.warning(
                     f"Function '{func.__name__}' is not bound to "
                     f"{pygame.event.event_name(event_type)}"
                 )
-                return
-            call_list.remove(func)
             return
         event: int
-        for event, call_list in self._listeners.items():
-            if not call_list:
+        for event, event_dict in self._listeners.items():
+            if not event_dict:
                 continue
-            if func in call_list:
-                logger.info(
-                    f"Removing function '{func.__name__}' from "
-                    f"{pygame.event.event_name(event)}"
-                )
-                call_list.remove(func)
+            for call_list in event_dict.values():
+                if func in call_list:
+                    logger.info(
+                        f"Removing function '{func.__name__}' from "
+                        f"{pygame.event.event_name(event)}"
+                    )
+                    call_list.remove(func)
 
-    def register_class(self, cls: Type[object]) -> Type[object]:
-        """
-        Prepares a class for event handling.
-        This will hijack the class's init method to push its instances into
-        the assigned event manager.
-
-        It will also go through and clean up the assigned methods.
-        """
-        # Mypy will throw an error here because it thinks this is illegal.
-        # Hijacking an init is illegal? Guess I'm going to jail then.
-        cls.__init__ = self._modify_init(cls.__init__)  # type: ignore
-        # Add all of the tagged methods to the callables list
-        logger.debug("Checking for marked methods")
-        for _, method in cls.__dict__.items():
-            if not hasattr(method, "_assigned_managers"):
-                continue
-            logger.debug("Found marked method")
-            _assigned_managers: list[tuple[EventManager, int]] = getattr(
-                method, "_assigned_managers", []
-            )
-            self._verify_manager(cls, method, _assigned_managers)
-            if len(_assigned_managers) == 0:
-                # We cleaned up the assignments to this handler, but other handlers
-                # might have yet to check. If all have cleaned up, we can remove the
-                # hanging attribute.
-                delattr(method, "_assigned_managers")
-                # Now there's no sign we modified the method.
-
-        return cls
-
-    def _verify_manager(
-        self,
-        cls: Type[object],
-        method: Callable,
-        managers: list[tuple[EventManager, int]],
-    ) -> None:
-        """
-        Checks the list of assigned managers for a method and captures it if it is
-        assigned to the calling manager
-
-        :param cls: Class of the object being processed
-        :param method: Callable being registered
-        :param managers: list of managers and pygame events being processed.
-        """
-        _indexes_to_remove: list[int] = []
-        for index, (manager, event_type) in enumerate(managers):
-            logger.debug(f"Found assigned manager: {manager}")
-            if manager is not self:
-                continue
-            self._capture_method(cls, method, event_type)
-            # Whoops, undefined behavior
-            # managers.pop(index)
-            _indexes_to_remove.append(index)
-            break
-        # Need to clean up the processed indices to we can remove the tag attribute
-        # from the method.
-        for index in reversed(_indexes_to_remove):
-            managers.pop(index)
-
-    def _capture_method(
-        self, cls: Type[object], method: Callable, event_type: int
-    ) -> None:
+    def _capture_method(self, cls, method, tag_data):
         """
         Adds the method, class, and event into the appropriate dictionaries to ensure
         they can be properly notified.
 
         :param cls: Class of the object being processed
-        :param method: Callable being registered
-        :param managers: list of managers and pygame events being processed.
+        :param method: Callable being captured
+        :param tag_data: A tuple containing pertinent registration data
         """
-        logger.debug("Found method assigned to self. Registering.")
-        logger.debug(f"Registering {method} to {pygame.event.event_name(event_type)}")
-        self._class_listeners.setdefault(event_type, []).append((method, cls))
+        is_concurrent = not hasattr(method, "_runs_sequential")
+        event_type = tag_data[0]  # Only piece of data
+
+        # -----Add to Class Listeners-----
+        event_dict = self._class_listeners.setdefault(event_type, {})
+        concurrency_list = event_dict.setdefault(is_concurrent, [])
+        concurrency_list.append((method, cls))
+
+        # -----Add to Class Listener Events-----
         self._class_listener_events.setdefault(method, []).append(event_type)
+
+        # -----Add to Assigned Classes-----
         self._assigned_classes.setdefault(cls, []).append(method)
 
-    def _modify_init(self, init: Callable) -> Callable:
-        """
-        Extracts the class and instance being generated, and puts them into a
-        dict, so that the method can be called upon it
-
-        :param init: The initializer function of a class being registered.
-        :return: The modified init function
-        """
-        functools.wraps(init)  # Needs this
-
-        def wrapper(*args, **kwds):
-            # args[0] of a non-class, non-static method is the instance
-            # This is called whenever the class is instantiated,
-            # and the instance is extracted and can be stored
-            instance = args[0]
-            cls = instance.__class__
-            # No need to check for the instance, each only calls this once
-            self._class_listener_instances.setdefault(cls, WeakSet()).add(instance)
-            logger.debug(f"Extracted instance {instance} from {cls}")
-            return init(*args, **kwds)
-
-        return wrapper
+    def _add_instance(self, cls, instance):
+        self._class_listener_instances.setdefault(cls, WeakSet()).add(instance)
 
     def register_method(self, event_type: int) -> Callable:
         """
@@ -186,20 +120,7 @@ class EventManager:
         """
 
         def decorator(method: Callable) -> Callable:
-            # Tagging a method with an attribute for later reading?
-            # This reeks of "cleverness"
-            # Hope it's not too clever for me to debug.
-
-            # Although I suppose if you're reading this, it got published, which means
-            # I got it to work properly.
-            assigned_managers: list[tuple[EventManager, int]] = []
-            if hasattr(method, "_assigned_managers"):
-                # Deja vu? This isn't the first assignment, so we need to pull the
-                # previous ones first.
-                assigned_managers = getattr(method, "_assigned_managers", [])
-            assigned_managers.append((self, event_type))
-            setattr(method, "_assigned_managers", assigned_managers)
-            return method
+            return self._tag_method(method, (event_type,))
 
         return decorator
 
@@ -226,14 +147,17 @@ class EventManager:
         :param method: Method whose registration is being revoked.
         """
         for event_type in self._class_listener_events.get(method, []):
-            listener_sets = self._class_listeners.get(event_type, [])
-            # Retain only the listeners that are not the method
-            listener_sets = list(
-                filter(
-                    lambda listener_set: method is not listener_set[0], listener_sets
+            event_dict = self._class_listeners.get(event_type, {})
+            for concurrency, listener_sets in event_dict.items():
+                # Retain only the listeners that are not the method
+                listener_sets = list(
+                    filter(
+                        lambda listener_set: method is not listener_set[0],
+                        listener_sets,
+                    )
                 )
-            )
-            self._class_listeners.update({event_type: listener_sets})
+                event_dict.update({concurrency: listener_sets})
+            self._class_listeners.update({event_type: event_dict})
         self._class_listener_events.pop(method)
 
     def purge_event(self, event_type: int) -> None:
@@ -242,41 +166,35 @@ class EventManager:
 
         :param event_type: Pygame event type
         """
-        call_list: list[Callable] | None = self._listeners.get(event_type)
-        class_call_list = self._class_listeners.get(event_type)
-        if not call_list and not class_call_list:
-            logger.warning(
-                f"Cannot purge event {pygame.event.event_name(event_type)}./n"
-                "Event has no registered functions."
-            )
-            return
-        if call_list:
-            logger.info(
-                "Clearing all functions from event "
-                f"{pygame.event.event_name(event_type)}"
-            )
-            call_list.clear()
-        if class_call_list:
-            logger.info(
-                "Clearing all methods from event "
-                f"{pygame.event.event_name(event_type)}"
-            )
-            class_call_list.clear()
+        self._listeners.pop(event_type, None)
+        self._class_listeners.pop(event_type, None)
+        # This really simplified things, no?
 
-    def notify(self, event: pygame.Event) -> None:
-        """
-        Finds all listeners for a given event, and calls them in a new thread
+    def notify_concurrent(self, event):
+        functions = self._listeners.get(event.type, {})
+        concurrent_funcs = functions.get(True, [])
+        methods = self._class_listeners.get(event.type, {})
+        concurrent_methods = methods.get(True, [])
 
-        :param event: _description_
-        """
-        listeners: list[Callable] = self._listeners.get(event.type, [])
-        for listener in listeners:
-            threading.Thread(target=listener, args=(event,)).start()
-        methods = self._class_listeners.get(event.type, [])
-        for method, cls in methods:
+        for function in concurrent_funcs:
+            threading.Thread(target=function, args=(event,)).start()
+        for method, cls in concurrent_methods:
             instances = self._class_listener_instances.get(cls, WeakSet())
             for instance in instances:
                 threading.Thread(target=method, args=(instance, event)).start()
+
+    def notify_sequential(self, event):
+        functions = self._listeners.get(event.type, {})
+        sequential_funcs = functions.get(False, [])
+        methods = self._class_listeners.get(event.type, {})
+        sequential_methods = methods.get(False, [])
+
+        for function in sequential_funcs:
+            function(event)
+        for method, cls in sequential_methods:
+            instances = self._class_listener_instances.get(cls, WeakSet())
+            for instance in instances:
+                method(instance, event)
 
 
 def notifyEventManagers(event: pygame.Event) -> None:
