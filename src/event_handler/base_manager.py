@@ -67,8 +67,20 @@ class BaseManager(ABC):
 
         return cls
 
+    def notify(self, event: pygame.Event) -> None:
+        """
+        Finds all listeners for a given event, and calls them in a new thread
+
+        :param event: _description_
+        """
+        self.notify_concurrent(event)
+        self.notify_sequential(event)
+
     @abstractmethod
-    def notify(self, event: pygame.Event) -> None: ...
+    def notify_concurrent(self, event: pygame.Event) -> None: ...
+
+    @abstractmethod
+    def notify_sequential(self, event: pygame.Event) -> None: ...
 
     @abstractmethod
     def _add_instance(self, cls: Type[object], instance: object) -> None: ...
