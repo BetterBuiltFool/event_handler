@@ -70,16 +70,11 @@ class EventManager(BaseManager):
                     f"{pygame.event.event_name(event_type)}"
                 )
             return
-        event: int
-        for event, event_dict in self._listeners.items():
+        for event_dict in self._listeners.values():
             if not event_dict:
                 continue
             for call_list in event_dict.values():
                 if func in call_list:
-                    logger.info(
-                        f"Removing function '{func.__name__}' from "
-                        f"{pygame.event.event_name(event)}"
-                    )
                     call_list.remove(func)
 
     def _capture_method(self, cls, method, tag_data):
