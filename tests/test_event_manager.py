@@ -35,6 +35,25 @@ class TestEventManager(unittest.TestCase):
     def tearDown(self) -> None:
         self.event_manager._listeners.clear()
 
+    def test_sequential_tag(self) -> None:
+
+        @self.event_manager.register(self.test_event)
+        @self.event_manager.sequential
+        def test_func() -> None:
+            pass
+
+        self.assertHasAttr(test_func, "_runs_sequential")
+
+    def test_concurrent_tag(self) -> None:
+
+        @self.event_manager.register(self.test_event)
+        @self.event_manager.concurrent
+        @self.event_manager.sequential
+        def test_func() -> None:
+            pass
+
+        self.assertNotHasAttr(test_func, "_runs_sequential")
+
     def test_register(self) -> None:
 
         @self.event_manager.register(self.test_event)
@@ -46,6 +65,37 @@ class TestEventManager(unittest.TestCase):
         self.assertIn(
             test_func,
             cast(list[Callable], listeners),
+        )
+
+    def test_register_sequential(self) -> None:
+
+        @self.event_manager.register(self.test_event)
+        @self.event_manager.sequential
+        def test_func() -> None:
+            pass
+
+        @self.event_manager.register(self.test_event)
+        def test_func2() -> None:
+            pass
+
+        event_dict = self.event_manager._listeners.get(self.test_event, {})
+        conc_listeners = event_dict.get(True)
+        seq_listeners = event_dict.get(False)
+        self.assertNotIn(
+            test_func,
+            cast(list[Callable], conc_listeners),
+        )
+        self.assertIn(
+            test_func,
+            cast(list[Callable], seq_listeners),
+        )
+        self.assertNotIn(
+            test_func2,
+            cast(list[Callable], seq_listeners),
+        )
+        self.assertIn(
+            test_func2,
+            cast(list[Callable], conc_listeners),
         )
 
     def test_deregister(self) -> None:
@@ -230,31 +280,40 @@ class TestEventManager(unittest.TestCase):
             cast(list[Callable], event_dict2.get(True)),
         )
 
-    def test_notify_simple(self) -> None:
+    def test_notify_concurrent(self) -> None:
 
         example_var = False
+        example_var2 = False
         lock = threading.Lock()
 
+        @self.event_manager.register(self.test_event)
         def test_func(_) -> None:
             nonlocal example_var
             lock.acquire()
             example_var = True
             lock.release()
 
-        self.event_manager.register(self.test_event)(test_func)
+        @self.event_manager.register(self.test_event)
+        @self.event_manager.sequential
+        def test_func2(_) -> None:
+            nonlocal example_var2
+            example_var2 = True
+
         local_event = pygame.event.Event(self.test_event2)
         pygame.event.post(local_event)
         for event in pygame.event.get():
-            self.event_manager.notify(event)
+            self.event_manager.notify_concurrent(event)
         # Make sure only the correct event is responded to
         self.assertFalse(example_var)
+        self.assertFalse(example_var2)
         local_event = pygame.event.Event(self.test_event)
         pygame.event.post(local_event)
         for event in pygame.event.get():
-            self.event_manager.notify(event)
+            self.event_manager.notify_concurrent(event)
         self.assertTrue(example_var)
+        self.assertFalse(example_var2)
 
-    def test_notify_class(self) -> None:
+    def test_notify_class_concurrent(self) -> None:
 
         lock = threading.Lock()
 
@@ -266,6 +325,7 @@ class TestEventManager(unittest.TestCase):
 
             def __init__(self):
                 self.test_var = False
+                self.test_var2 = False
 
             @self.event_manager.register_method(self.test_event2)
             def test_method(self, _):
@@ -273,26 +333,114 @@ class TestEventManager(unittest.TestCase):
                 self.test_var = True
                 lock.release()
 
+            @self.event_manager.register_method(self.test_event2)
+            @self.event_manager.sequential
+            def test_method2(self, _):
+                self.test_var2 = True
+
         test_class_list: list[TestClass] = []
 
-        for i in range(3):
+        for _ in range(3):
             test_class_list.append(TestClass())
 
         local_event = pygame.Event(self.test_event)
         pygame.event.post(local_event)
 
         for event in pygame.event.get():
-            self.event_manager.notify(event)
+            self.event_manager.notify_concurrent(event)
         for item in test_class_list:
             self.assertFalse(item.test_var)
+            self.assertFalse(item.test_var2)
 
         local_event = pygame.Event(self.test_event2)
         pygame.event.post(local_event)
 
         for event in pygame.event.get():
-            self.event_manager.notify(event)
+            self.event_manager.notify_concurrent(event)
         for item in test_class_list:
             self.assertTrue(item.test_var)
+            self.assertFalse(item.test_var2)
+
+    def test_notify_sequential(self) -> None:
+
+        example_var = False
+        example_var2 = False
+        lock = threading.Lock()
+
+        @self.event_manager.register(self.test_event)
+        def test_func(_) -> None:
+            nonlocal example_var
+            lock.acquire()
+            example_var = True
+            lock.release()
+
+        @self.event_manager.register(self.test_event)
+        @self.event_manager.sequential
+        def test_func2(_) -> None:
+            nonlocal example_var2
+            example_var2 = True
+
+        local_event = pygame.event.Event(self.test_event2)
+        pygame.event.post(local_event)
+        for event in pygame.event.get():
+            self.event_manager.notify_sequential(event)
+        # Make sure only the correct event is responded to
+        self.assertFalse(example_var)
+        self.assertFalse(example_var2)
+        local_event = pygame.event.Event(self.test_event)
+        pygame.event.post(local_event)
+        for event in pygame.event.get():
+            self.event_manager.notify_sequential(event)
+        self.assertFalse(example_var)
+        self.assertTrue(example_var2)
+
+    def test_notify_class_sequential(self) -> None:
+
+        lock = threading.Lock()
+
+        @self.event_manager.register_class
+        class TestClass:
+            """
+            Simple class for testing
+            """
+
+            def __init__(self):
+                self.test_var = False
+                self.test_var2 = False
+
+            @self.event_manager.register_method(self.test_event2)
+            def test_method(self, _):
+                lock.acquire()
+                self.test_var = True
+                lock.release()
+
+            @self.event_manager.register_method(self.test_event2)
+            @self.event_manager.sequential
+            def test_method2(self, _):
+                self.test_var2 = True
+
+        test_class_list: list[TestClass] = []
+
+        for _ in range(3):
+            test_class_list.append(TestClass())
+
+        local_event = pygame.Event(self.test_event)
+        pygame.event.post(local_event)
+
+        for event in pygame.event.get():
+            self.event_manager.notify_sequential(event)
+        for item in test_class_list:
+            self.assertFalse(item.test_var)
+            self.assertFalse(item.test_var2)
+
+        local_event = pygame.Event(self.test_event2)
+        pygame.event.post(local_event)
+
+        for event in pygame.event.get():
+            self.event_manager.notify_sequential(event)
+        for item in test_class_list:
+            self.assertFalse(item.test_var)
+            self.assertTrue(item.test_var2)
 
 
 if __name__ == "__main__":
