@@ -100,9 +100,6 @@ class EventManager(BaseManager):
         # -----Add to Assigned Classes-----
         self._assigned_classes.setdefault(cls, []).append(method)
 
-    def _add_instance(self, cls, instance):
-        self._class_listener_instances.setdefault(cls, WeakSet()).add(instance)
-
     def register_method(self, event_type: int) -> Callable:
         """
         Wrapper that marks the method for registration when the class is registered.

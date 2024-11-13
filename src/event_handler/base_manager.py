@@ -82,8 +82,14 @@ class BaseManager(ABC):
     @abstractmethod
     def notify_sequential(self, event: pygame.Event) -> None: ...
 
-    @abstractmethod
-    def _add_instance(self, cls: Type[object], instance: object) -> None: ...
+    def _add_instance(self, cls: Type[object], instance: object) -> None:
+        """
+        Adds the instance into the collection of instances
+
+        :param cls: The class of the instance
+        :param instance: The new instance being captured
+        """
+        self._class_listener_instances.setdefault(cls, WeakSet()).add(instance)
 
     @abstractmethod
     def _capture_method(
