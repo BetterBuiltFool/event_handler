@@ -1,11 +1,24 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 import functools
 from typing import Callable, Type
 from weakref import WeakSet
 
 import pygame
+
+
+@dataclass
+class _CallableSets:
+    """
+    A collection of callables, broken up by type
+    """
+
+    concurrent_functions: list[Callable] = field(default_factory=list)
+    concurrent_methods: list[Callable] = field(default_factory=list)
+    sequential_functions: list[Callable] = field(default_factory=list)
+    sequential_methods: list[Callable] = field(default_factory=list)
 
 
 class BaseManager(ABC):
@@ -81,6 +94,16 @@ class BaseManager(ABC):
 
     @abstractmethod
     def notify_sequential(self, event: pygame.Event) -> None: ...
+
+    @abstractmethod
+    def _handle_concurrent(
+        self, event: pygame.Event, callables: _CallableSets
+    ) -> None: ...
+
+    @abstractmethod
+    def _handle_sequential(
+        self, event: pygame.Event, callables: _CallableSets
+    ) -> None: ...
 
     def _add_instance(self, cls: Type[object], instance: object) -> None:
         """
