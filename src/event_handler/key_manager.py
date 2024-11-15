@@ -207,17 +207,9 @@ class KeyListener(BaseManager):
         """
 
         def decorator(method: Callable) -> Callable:
-            # Nearly an exact duplicate of the EventManager version
-            assigned_listeners: list[
-                tuple[KeyListener, str, int | None, int | None, int]
-            ] = []
-            if hasattr(method, "_assigned_listeners"):
-                assigned_listeners = getattr(method, "_assigned_listeners", [])
-            assigned_listeners.append(
-                (self, key_bind_name, default_key, default_mod, event_type)
+            return self._tag_method(
+                method, (key_bind_name, default_key, default_mod, event_type)
             )
-            setattr(method, "_assigned_listeners", assigned_listeners)
-            return method
 
         return decorator
 
