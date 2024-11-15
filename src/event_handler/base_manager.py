@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 import functools
+import threading
 from typing import Callable, Type
 from weakref import WeakSet
 
@@ -16,9 +17,13 @@ class _CallableSets:
     """
 
     concurrent_functions: list[Callable] = field(default_factory=list)
-    concurrent_methods: list[Callable] = field(default_factory=list)
     sequential_functions: list[Callable] = field(default_factory=list)
-    sequential_methods: list[Callable] = field(default_factory=list)
+    concurrent_methods: list[tuple[Callable, Type[object]]] = field(
+        default_factory=list
+    )
+    sequential_methods: list[tuple[Callable, Type[object]]] = field(
+        default_factory=list
+    )
 
 
 class BaseManager(ABC):
@@ -86,24 +91,36 @@ class BaseManager(ABC):
 
         :param event: _description_
         """
-        self.notify_concurrent(event)
-        self.notify_sequential(event)
+        callables = self._get_callables(event)
+        self._handle_concurrent(event, callables)
+        self._handle_sequential(event, callables)
+
+    def notify_concurrent(self, event: pygame.Event) -> None:
+        callables = self._get_callables(event)
+        self._handle_concurrent(event, callables)
+
+    def notify_sequential(self, event: pygame.Event) -> None:
+        callables = self._get_callables(event)
+        self._handle_sequential(event, callables)
 
     @abstractmethod
-    def notify_concurrent(self, event: pygame.Event) -> None: ...
+    def _get_callables(self, event: pygame.Event) -> _CallableSets: ...
 
-    @abstractmethod
-    def notify_sequential(self, event: pygame.Event) -> None: ...
+    def _handle_concurrent(self, event: pygame.Event, callables: _CallableSets) -> None:
+        for function in callables.concurrent_functions:
+            threading.Thread(target=function, args=(event,)).start()
+        for method, cls in callables.concurrent_methods:
+            instances = self._class_listener_instances.get(cls, WeakSet())
+            for instance in instances:
+                threading.Thread(target=method, args=(instance, event)).start()
 
-    @abstractmethod
-    def _handle_concurrent(
-        self, event: pygame.Event, callables: _CallableSets
-    ) -> None: ...
-
-    @abstractmethod
-    def _handle_sequential(
-        self, event: pygame.Event, callables: _CallableSets
-    ) -> None: ...
+    def _handle_sequential(self, event: pygame.Event, callables: _CallableSets) -> None:
+        for function in callables.sequential_functions:
+            function(event)
+        for method, cls in callables.sequential_methods:
+            instances = self._class_listener_instances.get(cls, WeakSet())
+            for instance in instances:
+                method(instance, event)
 
     def _add_instance(self, cls: Type[object], instance: object) -> None:
         """
