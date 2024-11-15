@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 import logging
-import threading
 from typing import Callable, Optional, Type
-from weakref import WeakSet
 
-from .base_manager import BaseManager
+from .base_manager import BaseManager, _CallableSets
 
 import pygame
 
@@ -162,31 +160,15 @@ class EventManager(BaseManager):
         self._class_listeners.pop(event_type, None)
         # This really simplified things, no?
 
-    def notify_concurrent(self, event):
+    def _get_callables(self, event) -> _CallableSets:
         functions = self._listeners.get(event.type, {})
-        concurrent_funcs = functions.get(True, [])
         methods = self._class_listeners.get(event.type, {})
-        concurrent_methods = methods.get(True, [])
-
-        for function in concurrent_funcs:
-            threading.Thread(target=function, args=(event,)).start()
-        for method, cls in concurrent_methods:
-            instances = self._class_listener_instances.get(cls, WeakSet())
-            for instance in instances:
-                threading.Thread(target=method, args=(instance, event)).start()
-
-    def notify_sequential(self, event):
-        functions = self._listeners.get(event.type, {})
-        sequential_funcs = functions.get(False, [])
-        methods = self._class_listeners.get(event.type, {})
-        sequential_methods = methods.get(False, [])
-
-        for function in sequential_funcs:
-            function(event)
-        for method, cls in sequential_methods:
-            instances = self._class_listener_instances.get(cls, WeakSet())
-            for instance in instances:
-                method(instance, event)
+        return _CallableSets(
+            concurrent_functions=functions.get(True, []),
+            sequential_functions=functions.get(False, []),
+            concurrent_methods=methods.get(True, []),
+            sequential_methods=methods.get(False, []),
+        )
 
 
 def notifyEventManagers(event: pygame.Event) -> None:
