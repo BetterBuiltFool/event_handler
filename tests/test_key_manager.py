@@ -249,29 +249,22 @@ class TestKeyListener(unittest.TestCase):
         self.assertIn("test_bind1", self.key_listener._key_hooks.keys())
         self.assertIn("test_bind2", self.key_listener._key_hooks.keys())
 
-        bind0_dict = self.key_listener._key_hooks.get("test_bind0")
-        assert bind0_dict
-        bind0_list = bind0_dict.get(pygame.KEYDOWN)
-        self.assertIn(
-            test_func,
-            cast(list[Callable], bind0_list),
+        callables = self.key_listener._get_callables(
+            pygame.Event(pygame.KEYDOWN, key=pygame.K_0, mod=pygame.KMOD_ALT)
         )
 
-        bind1_dict = self.key_listener._key_hooks.get("test_bind1")
-        assert bind1_dict
-        bind1_list = bind1_dict.get(pygame.KEYDOWN)
-        self.assertIn(
-            test_func,
-            cast(list[Callable], bind1_list),
+        callables2 = self.key_listener._get_callables(
+            pygame.Event(pygame.KEYDOWN, key=pygame.K_1)
         )
 
-        bind2_dict = self.key_listener._key_hooks.get("test_bind2")
-        assert bind2_dict
-        bind2_list = bind2_dict.get(pygame.KEYDOWN)
-        self.assertIn(
-            test_func,
-            cast(list[Callable], bind2_list),
-        )
+        self.assertIn(test_func, callables.concurrent_functions)
+
+        self.assertIn(test_func, callables2.concurrent_functions)
+
+        bind2_dict = self.key_listener._key_hooks.get("test_bind2", {})
+        bind2_event_dict = bind2_dict.get(True, {})
+        bind2_list = bind2_event_dict.get(pygame.KEYDOWN, [])
+        self.assertIn(test_func, bind2_list)
 
     def test_unbind(self) -> None:
 
@@ -288,7 +281,7 @@ class TestKeyListener(unittest.TestCase):
 
         bind0_dict = self.key_listener._key_hooks.get("test_bind0")
         assert bind0_dict
-        bind0_list = bind0_dict.get(pygame.KEYDOWN)
+        bind0_list = bind0_dict.get(True, {}).get(pygame.KEYDOWN)
         self.assertNotIn(
             test_func,
             cast(list[Callable], bind0_list),
@@ -296,7 +289,7 @@ class TestKeyListener(unittest.TestCase):
 
         bind1_dict = self.key_listener._key_hooks.get("test_bind1")
         assert bind1_dict
-        bind1_list = bind1_dict.get(pygame.KEYDOWN)
+        bind1_list = bind1_dict.get(True, {}).get(pygame.KEYDOWN)
         self.assertIn(
             test_func,
             cast(list[Callable], bind1_list),
@@ -304,7 +297,7 @@ class TestKeyListener(unittest.TestCase):
 
         bind2_dict = self.key_listener._key_hooks.get("test_bind2")
         assert bind2_dict
-        bind2_list = bind2_dict.get(pygame.KEYDOWN)
+        bind2_list = bind2_dict.get(True, {}).get(pygame.KEYDOWN)
         self.assertIn(
             test_func,
             cast(list[Callable], bind2_list),
@@ -331,7 +324,7 @@ class TestKeyListener(unittest.TestCase):
         self.assertIsNotNone(self.key_listener._key_hooks.get("test_bind0"))
         bind1_dict = self.key_listener._key_hooks.get("test_bind1")
         assert bind1_dict
-        bind1_list = bind1_dict.get(pygame.KEYDOWN)
+        bind1_list = bind1_dict.get(True, {}).get(pygame.KEYDOWN)
         self.assertIn(
             test_func,
             cast(list[Callable], bind1_list),
@@ -348,10 +341,10 @@ class TestKeyListener(unittest.TestCase):
             def test_method(self, _):
                 pass
 
-        self.assertHasAttr(TestClass.test_method, "_assigned_listeners")
+        self.assertHasAttr(TestClass.test_method, "_assigned_managers")
         assigned_listener_sets: list[
             tuple[KeyListener, str, int | None, int | None, int]
-        ] = getattr(TestClass.test_method, "_assigned_listeners")
+        ] = getattr(TestClass.test_method, "_assigned_managers")
         assigned_listeners = [set[0] for set in assigned_listener_sets]
         self.assertIn(self.key_listener, assigned_listeners)
 
@@ -381,7 +374,7 @@ class TestKeyListener(unittest.TestCase):
             ),
         )
         bound_listeners: dict[int, list[tuple[Callable, Type[object]]]] = (
-            self.key_listener._class_listeners.get("test_bind", {})
+            self.key_listener._class_listeners.get("test_bind", {}).get(True, {})
         )
         self.assertTrue(bound_listeners)
         listeners: list[tuple[Callable, Type[object]]] = bound_listeners.get(
@@ -413,7 +406,7 @@ class TestKeyListener(unittest.TestCase):
             TestClass.test_method, self.key_listener._class_listener_binds.keys()
         )
         bound_listeners: dict[int, list[tuple[Callable, Type[object]]]] = (
-            self.key_listener._class_listeners.get("test_bind", {})
+            self.key_listener._class_listeners.get("test_bind", {}).get(True, {})
         )
         self.assertTrue(bound_listeners)
         listeners: list[tuple[Callable, Type[object]]] = bound_listeners.get(
@@ -443,7 +436,7 @@ class TestKeyListener(unittest.TestCase):
         )
         self.assertNotIn(TestClass, self.key_listener._class_listener_instances.keys())
         bound_listeners: dict[int, list[tuple[Callable, Type[object]]]] = (
-            self.key_listener._class_listeners.get("test_bind", {})
+            self.key_listener._class_listeners.get("test_bind", {}).get(True, {})
         )
         self.assertTrue(bound_listeners)
         listeners: list[tuple[Callable, Type[object]]] = bound_listeners.get(
