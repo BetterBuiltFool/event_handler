@@ -32,8 +32,7 @@ class JoyMap:
         Converts the dict of an event into a tuple of tuple suitable to use as a dict
         key.
 
-        Ignores the "instance_id" and "value" parameters, since those vary depending on
-        the controller instance and the input degree
+        Ignores unneeded parameters
 
         :param event: pygame event, or a dict containing the data of an event.
         :return: The event's dict, converted into a tuple of tuples
@@ -51,7 +50,8 @@ class JoyMap:
             if key in _invalid_params:
                 continue
             pairs.append((key, value))
-        return tuple(*pairs)
+        # This is a valid conversion, but Mypy doesn't like it
+        return tuple(pairs)  # type: ignore
 
     def _convert_pairs(self, event_key: tuple[tuple]) -> dict:
         event_dict: dict = {}
@@ -59,9 +59,7 @@ class JoyMap:
             event_dict.update({key, value})
         return event_dict
 
-    def get(
-        self, event: pygame.Event, default: Optional[list] = None
-    ) -> list[str] | None:
+    def get(self, event: pygame.Event, default: Optional[list] = None) -> list[str]:
         """
         Returns the list of bind names that match the given event.
 
@@ -72,9 +70,9 @@ class JoyMap:
         """
         # Convert the dict of an event into a tuple of tuple to use as a dict key
         key = self._convert_event(event)
-        if default is not None:
-            return self._joy_binds.get(key, default)
-        return self._joy_binds.get(key)
+        if default is None:
+            default = []
+        return self._joy_binds.get(key, default)
 
     def get_bound_joystick_event(self, bind_name: str) -> dict | None:
         """
