@@ -4,9 +4,10 @@ from abc import ABC, abstractmethod
 import itertools
 import logging
 from pathlib import Path
-from typing import Callable, Optional, TextIO, Type
+from typing import Any, Callable, Optional, overload, TextIO, Type
 
 # import file_parser
+from .joy_map import JoyMap
 from .key_map import KeyBind, KeyMap
 from .base_manager import BaseManager, _CallableSets
 
@@ -33,6 +34,7 @@ class FileParser(ABC):
 class KeyListener(BaseManager):
     _listeners: dict[str, KeyListener] = {}
     key_map: KeyMap = KeyMap()
+    joy_map: JoyMap = JoyMap()
 
     def __init__(self, handle: str) -> None:
         super().__init__(handle)
@@ -57,6 +59,7 @@ class KeyListener(BaseManager):
         key_bind_name: str,
         default_key: Optional[int] = None,
         default_mod: Optional[int] = None,
+        default_joystick_data: Optional[dict] = None,
         event_type: int = pygame.KEYDOWN,
     ) -> Callable:
         """
@@ -75,7 +78,10 @@ class KeyListener(BaseManager):
         mod keys to be pressed. If using multiple, use bitwise OR to combine, defaults
         to None
         """
-        self.key_map.generate_bind(key_bind_name, default_key, default_mod)
+        if default_joystick_data is not None:
+            self.joy_map.generate_bind(key_bind_name, default_joystick_data)
+        else:
+            self.key_map.generate_bind(key_bind_name, default_key, default_mod)
 
         def decorator(responder: Callable) -> Callable:
             # Regardless, add the responder to the bind within our hook dict
@@ -89,12 +95,30 @@ class KeyListener(BaseManager):
 
         return decorator
 
+    @overload
     def rebind(
         self,
         key_bind_name: str,
-        new_key: int | None,
+        new_key: Optional[int] = None,
         new_mod: Optional[int] = None,
-    ) -> tuple[int | None, int] | None:
+    ) -> tuple[int | None, int | None] | None: ...
+
+    @overload
+    def rebind(
+        self,
+        key_bind_name: str,
+        new_joystick_data: Optional[dict] = None,
+    ) -> dict | None: ...
+
+    def rebind(
+        self,
+        key_bind_name: str,
+        *args,
+        **kwds,
+        # new_key: Optional[int] = None,
+        # new_mod: Optional[int] = None,
+        # new_joystick_data: Optional[dict] = None,
+    ) -> dict | tuple[int | None, int | None] | None:
         """
         Attempts to assign the new key info the the named bind.
         Generates a warning if the bind is not registered.
@@ -105,8 +129,31 @@ class KeyListener(BaseManager):
         defaults to None
         :return: A tuple containing the previous key and mod key
         """
-        old_bind = self.key_map.get_bound_key(key_bind_name)
-        if old_bind:
+        new_bind: Any
+        if len(args):
+            new_bind = args[0]
+        elif new_bind := kwds.get("new_key"):
+            pass
+        if kwds.get("new_joystick_data") or isinstance(new_bind, dict):
+            return self._rebind_joystick(key_bind_name, new_bind)
+        else:
+            mod_keys: int | None
+            if len(args) > 1:
+                mod_keys = args[1]
+            else:
+                mod_keys = kwds.get("new_mod", None)
+            return self._rebind_key(key_bind_name, new_bind, mod_keys)
+
+    def _rebind_key(
+        self,
+        key_bind_name: str,
+        new_key: Optional[int] = None,
+        new_mod: Optional[int] = None,
+    ) -> tuple[int | None, int | None] | None:
+        old_bind: tuple | None
+        try:
+            old_bind = self.key_map.get_bound_key(key_bind_name)
+        except ValueError:
             logger.warning(
                 f"Attempted to rebind '{key_bind_name}' when bind does not"
                 " exist. \n Program might be attempting to rebind before"
@@ -116,6 +163,25 @@ class KeyListener(BaseManager):
         self.key_map.rebind(
             KeyBind(bind_name=key_bind_name, mod=new_mod), new_key=new_key
         )
+
+        return old_bind
+
+    def _rebind_joystick(
+        self,
+        key_bind_name: str,
+        new_joystick_data: Optional[dict] = None,
+    ) -> dict | None:
+        old_bind: dict | None
+        try:
+            old_bind = self.joy_map.get_bound_joystick_event(key_bind_name)
+        except ValueError:
+            logger.warning(
+                f"Attempted to rebind '{key_bind_name}' when bind does not"
+                " exist. \n Program might be attempting to rebind before"
+                " generating binds, or bind name may be incorrect."
+            )
+            return None
+        self.joy_map.rebind(key_bind_name, new_joystick_data)
 
         return old_bind
 
