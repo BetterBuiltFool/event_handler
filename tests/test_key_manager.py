@@ -234,6 +234,25 @@ class TestKeyListener(unittest.TestCase):
         self.key_listener._class_listeners.clear()
         self.key_listener._class_listener_instances.clear()
 
+    def test_sequential_tag(self) -> None:
+
+        @self.key_listener.bind("test_bind1")
+        @self.key_listener.sequential
+        def test_func() -> None:
+            pass
+
+        self.assertHasAttr(test_func, "_runs_sequential")
+
+    def test_concurrent_tag(self) -> None:
+
+        @self.key_listener.bind("test_bind1")
+        @self.key_listener.concurrent
+        @self.key_listener.sequential
+        def test_func() -> None:
+            pass
+
+        self.assertNotHasAttr(test_func, "_runs_sequential")
+
     def test_bind(self) -> None:
 
         def test_func(_) -> None:
@@ -263,6 +282,39 @@ class TestKeyListener(unittest.TestCase):
 
         bind2_dict = self.key_listener._key_hooks.get("test_bind2", {})
         bind2_event_dict = bind2_dict.get(True, {})
+        bind2_list = bind2_event_dict.get(pygame.KEYDOWN, [])
+        self.assertIn(test_func, bind2_list)
+
+    def test_bind_sequential(self) -> None:
+
+        @self.key_listener.sequential
+        def test_func(_) -> None:
+            pass
+
+        self.key_listener.bind("test_bind0", pygame.K_0, pygame.KMOD_ALT)(test_func)
+
+        self.key_listener.bind("test_bind1", pygame.K_1)(test_func)
+
+        self.key_listener.bind("test_bind2")(test_func)
+
+        self.assertIn("test_bind0", self.key_listener._key_hooks.keys())
+        self.assertIn("test_bind1", self.key_listener._key_hooks.keys())
+        self.assertIn("test_bind2", self.key_listener._key_hooks.keys())
+
+        callables = self.key_listener._get_callables(
+            pygame.Event(pygame.KEYDOWN, key=pygame.K_0, mod=pygame.KMOD_ALT)
+        )
+
+        callables2 = self.key_listener._get_callables(
+            pygame.Event(pygame.KEYDOWN, key=pygame.K_1)
+        )
+
+        self.assertIn(test_func, callables.sequential_functions)
+
+        self.assertIn(test_func, callables2.sequential_functions)
+
+        bind2_dict = self.key_listener._key_hooks.get("test_bind2", {})
+        bind2_event_dict = bind2_dict.get(False, {})
         bind2_list = bind2_event_dict.get(pygame.KEYDOWN, [])
         self.assertIn(test_func, bind2_list)
 
@@ -446,7 +498,7 @@ class TestKeyListener(unittest.TestCase):
         # Verify method/object pair are associated with the event
         self.assertNotIn(listener_pair, listeners)
 
-    def test_notify_simple(self) -> None:
+    def test_notify_concurrent(self) -> None:
 
         example_var = False
         lock = threading.Lock()
@@ -466,7 +518,7 @@ class TestKeyListener(unittest.TestCase):
         )
         pygame.event.post(local_event)
         for event in pygame.event.get():
-            self.key_listener.notify(event)
+            self.key_listener.notify_concurrent(event)
         # False, because the wrong key was pressed
         self.assertFalse(example_var)
 
@@ -475,7 +527,7 @@ class TestKeyListener(unittest.TestCase):
         )
         pygame.event.post(local_event)
         for event in pygame.event.get():
-            self.key_listener.notify(event)
+            self.key_listener.notify_concurrent(event)
         # False, because Alt isn't held
         self.assertFalse(example_var)
 
@@ -484,7 +536,7 @@ class TestKeyListener(unittest.TestCase):
         )
         pygame.event.post(local_event)
         for event in pygame.event.get():
-            self.key_listener.notify(event)
+            self.key_listener.notify_concurrent(event)
         # True, because both 0 and Alt are pressed
         self.assertTrue(example_var)
 
@@ -496,7 +548,7 @@ class TestKeyListener(unittest.TestCase):
         )
         pygame.event.post(local_event)
         for event in pygame.event.get():
-            self.key_listener.notify(event)
+            self.key_listener.notify_concurrent(event)
         # True, because exact key combo match
         self.assertTrue(example_var)
 
@@ -508,11 +560,11 @@ class TestKeyListener(unittest.TestCase):
         )
         pygame.event.post(local_event)
         for event in pygame.event.get():
-            self.key_listener.notify(event)
+            self.key_listener.notify_concurrent(event)
         # True, despite Alt also being pressed
         self.assertTrue(example_var)
 
-    def test_notify_class(self) -> None:
+    def test_notify_class_concurrent(self) -> None:
 
         lock = threading.Lock()
 
@@ -542,7 +594,7 @@ class TestKeyListener(unittest.TestCase):
         pygame.event.post(local_event)
 
         for event in pygame.event.get():
-            self.key_listener.notify(event)
+            self.key_listener.notify_concurrent(event)
         for item in test_class_list:
             self.assertFalse(item.test_var)
 
@@ -552,7 +604,112 @@ class TestKeyListener(unittest.TestCase):
         pygame.event.post(local_event)
 
         for event in pygame.event.get():
-            self.key_listener.notify(event)
+            self.key_listener.notify_concurrent(event)
+        for item in test_class_list:
+            self.assertTrue(item.test_var)
+
+    def test_notify_sequential(self) -> None:
+
+        example_var = False
+
+        @self.key_listener.sequential
+        def test_func(_) -> None:
+            nonlocal example_var
+            example_var = True
+
+        self.key_listener.bind("test_bind0", pygame.K_0, pygame.KMOD_ALT)(test_func)
+
+        self.key_listener.bind("test_bind9", pygame.K_9, None)(test_func)
+
+        local_event = pygame.event.Event(
+            pygame.KEYDOWN, unicode="1", key=pygame.K_1, mod=pygame.KMOD_NONE
+        )
+        pygame.event.post(local_event)
+        for event in pygame.event.get():
+            self.key_listener.notify_concurrent(event)
+        # False, because the wrong key was pressed
+        self.assertFalse(example_var)
+
+        local_event = pygame.event.Event(
+            pygame.KEYDOWN, unicode="0", key=pygame.K_0, mod=pygame.KMOD_NONE
+        )
+        pygame.event.post(local_event)
+        for event in pygame.event.get():
+            self.key_listener.notify_sequential(event)
+        # False, because Alt isn't held
+        self.assertFalse(example_var)
+
+        local_event = pygame.event.Event(
+            pygame.KEYDOWN, unicode="0", key=pygame.K_0, mod=pygame.KMOD_ALT
+        )
+        pygame.event.post(local_event)
+        for event in pygame.event.get():
+            self.key_listener.notify_sequential(event)
+        # True, because both 0 and Alt are pressed
+        self.assertTrue(example_var)
+
+        # Reset example var for other binding test
+        example_var = False
+
+        local_event = pygame.event.Event(
+            pygame.KEYDOWN, unicode="9", key=pygame.K_9, mod=pygame.KMOD_NONE
+        )
+        pygame.event.post(local_event)
+        for event in pygame.event.get():
+            self.key_listener.notify_sequential(event)
+        # True, because exact key combo match
+        self.assertTrue(example_var)
+
+        # Reset again
+        example_var = False
+
+        local_event = pygame.event.Event(
+            pygame.KEYDOWN, unicode="9", key=pygame.K_9, mod=pygame.KMOD_ALT
+        )
+        pygame.event.post(local_event)
+        for event in pygame.event.get():
+            self.key_listener.notify_sequential(event)
+        # True, despite Alt also being pressed
+        self.assertTrue(example_var)
+
+    def test_notify_class_sequential(self) -> None:
+
+        @self.key_listener.register_class
+        class TestClass:
+            """
+            Simple class for testing
+            """
+
+            def __init__(self):
+                self.test_var = False
+
+            @self.key_listener.bind_method("test_bind", pygame.K_0)
+            @self.key_listener.sequential
+            def test_method(self, _):
+                self.test_var = True
+
+        test_class_list: list[TestClass] = []
+
+        for i in range(3):
+            test_class_list.append(TestClass())
+
+        local_event = pygame.event.Event(
+            pygame.KEYDOWN, unicode="9", key=pygame.K_9, mod=pygame.KMOD_NONE
+        )
+        pygame.event.post(local_event)
+
+        for event in pygame.event.get():
+            self.key_listener.notify_sequential(event)
+        for item in test_class_list:
+            self.assertFalse(item.test_var)
+
+        local_event = pygame.event.Event(
+            pygame.KEYDOWN, unicode="0", key=pygame.K_0, mod=pygame.KMOD_NONE
+        )
+        pygame.event.post(local_event)
+
+        for event in pygame.event.get():
+            self.key_listener.notify_sequential(event)
         for item in test_class_list:
             self.assertTrue(item.test_var)
 
