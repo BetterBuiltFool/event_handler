@@ -101,24 +101,7 @@ class KeyListener(BaseManager):
         key_bind_name: str,
         new_key: Optional[int] = None,
         new_mod: Optional[int] = None,
-    ) -> tuple[int | None, int | None] | None: ...
-
-    @overload
-    def rebind(
-        self,
-        key_bind_name: str,
-        new_joystick_data: Optional[dict] = None,
-    ) -> dict | None: ...
-
-    def rebind(
-        self,
-        key_bind_name: str,
-        *args,
-        **kwds,
-        # new_key: Optional[int] = None,
-        # new_mod: Optional[int] = None,
-        # new_joystick_data: Optional[dict] = None,
-    ) -> dict | tuple[int | None, int | None] | None:
+    ) -> tuple[int | None, int | None] | None:
         """
         Attempts to assign the new key info the the named bind.
         Generates a warning if the bind is not registered.
@@ -129,6 +112,29 @@ class KeyListener(BaseManager):
         defaults to None
         :return: A tuple containing the previous key and mod key
         """
+
+    @overload
+    def rebind(
+        self,
+        key_bind_name: str,
+        new_joystick_data: Optional[dict] = None,
+    ) -> dict | None:
+        """
+        Attempts to assign the new joystick data to the named bind.
+        Generates a warning if the bind is not registered.
+
+        :param key_bind_name: Name of the bind to be reassigned
+        :param new_joystick_data: Joystick data to that needs to be matched to activate
+        the bind, defaults to None
+        :return: a dict containing the previous joystick data
+        """
+
+    def rebind(
+        self,
+        key_bind_name: str,
+        *args,
+        **kwds,
+    ) -> dict | tuple[int | None, int | None] | None:
         new_bind: Any
         if len(args):
             new_bind = args[0]
@@ -187,7 +193,8 @@ class KeyListener(BaseManager):
 
     def unbind(self, func: Callable, bind_name: Optional[str] = None) -> None:
         """
-        Removes a callable from the given bind.
+        Removes a callable from the given bind. Removes the callable from all binds,
+        if none is given
 
         :param func: A Callable previously registered with this Key Listener
         :param bind_name: The bind to be removed from, or all instances, if
@@ -239,8 +246,12 @@ class KeyListener(BaseManager):
         default_key: int = tag_data[1]
         default_mod: int = tag_data[2]
         event_type: int = tag_data[3]
+        default_joystick_data: dict = tag_data[4]
 
-        self.key_map.generate_bind(key_bind_name, default_key, default_mod)
+        if default_joystick_data is not None:
+            self.joy_map.generate_bind(key_bind_name, default_joystick_data)
+        else:
+            self.key_map.generate_bind(key_bind_name, default_key, default_mod)
 
         # -----Add to Class Listeners-----
         event_dict = self._class_listeners.setdefault(key_bind_name, {})
@@ -260,6 +271,7 @@ class KeyListener(BaseManager):
         key_bind_name: str,
         default_key: Optional[int] = None,
         default_mod: Optional[int] = None,
+        default_joystick_data: Optional[dict] = None,
         event_type: int = pygame.KEYDOWN,
     ) -> Callable:
         """
@@ -274,7 +286,14 @@ class KeyListener(BaseManager):
 
         def decorator(method: Callable) -> Callable:
             return self._tag_method(
-                method, (key_bind_name, default_key, default_mod, event_type)
+                method,
+                (
+                    key_bind_name,
+                    default_key,
+                    default_mod,
+                    event_type,
+                    default_joystick_data,
+                ),
             )
 
         return decorator
@@ -329,6 +348,7 @@ class KeyListener(BaseManager):
                 )
                 return
             self.key_map.remove_bind(bind_name)
+            self.joy_map.remove_bind(bind_name)
             return
         call_list = self._key_hooks.get(bind_name, None)
         class_call_list = self._class_listeners.get(bind_name, None)
@@ -342,7 +362,7 @@ class KeyListener(BaseManager):
             logger.info(f"Clearing all methods from bind {bind_name}")
             class_call_list.clear()
 
-    def _validate_input(self, key_bind: KeyBind, input_data: tuple) -> bool:
+    def _validate_input(self, key_bind: KeyBind, event: pygame.Event) -> bool:
         """
         Validates the input data against a key bind to ensure a match
 
@@ -352,8 +372,8 @@ class KeyListener(BaseManager):
         """
         is_valid = False
         # This structure is here to potentially leave room for
-        key_changed: int | None = input_data[0]
-        mod_keys: int | None = input_data[1]
+        key_changed: int | None = getattr(event, "key", None)
+        mod_keys: int | None = getattr(event, "mod", None)
         if key_changed is not None:
             mod = key_bind.mod
             if mod is None:
@@ -361,6 +381,7 @@ class KeyListener(BaseManager):
             elif mod_keys is not None and (mod & mod_keys or mod is mod_keys):
                 # mod is mod_keys catches pygame.KMOD_NONE
                 is_valid = True
+
         return is_valid
 
     def _get_callables(self, event: pygame.Event) -> _CallableSets:
@@ -372,22 +393,30 @@ class KeyListener(BaseManager):
         :param event: pygame event to be passed to the callables
         """
         key_changed: int | None = getattr(event, "key", None)
-        mod_keys: int | None = getattr(event, "mod", None)
-        input_data = (key_changed, mod_keys)
-        key_binds = self.key_map.key_binds.get(key_changed, [])
+        # mod_keys: int | None = getattr(event, "mod", None)
+
+        # input_data = (key_changed, mod_keys)
         conc_funcs_lists = []
         seq_funcs_lists = []
         conc_methods_lists = []
         seq_methods_lists = []
-        for key_bind in key_binds:
+        for key_bind in self.key_map.key_binds.get(key_changed, []):
             # Try to match the mod keys. If they don't, move on to the next.
-            if not self._validate_input(key_bind, input_data):
+            if not self._validate_input(key_bind, event):
                 continue
             hooks = self._key_hooks.get(key_bind.bind_name, {})
             conc_funcs_lists.append(hooks.get(True, {}).get(event.type, []))
             seq_funcs_lists.append(hooks.get(False, {}).get(event.type, []))
 
             method_hooks = self._class_listeners.get(key_bind.bind_name, {})
+            conc_methods_lists.append(method_hooks.get(True, {}).get(event.type, []))
+            seq_methods_lists.append(method_hooks.get(False, {}).get(event.type, []))
+        for bind in self.joy_map.get(event, []):
+            hooks = self._key_hooks.get(bind, {})
+            conc_funcs_lists.append(hooks.get(True, {}).get(event.type, []))
+            seq_funcs_lists.append(hooks.get(False, {}).get(event.type, []))
+
+            method_hooks = self._class_listeners.get(bind, {})
             conc_methods_lists.append(method_hooks.get(True, {}).get(event.type, []))
             seq_methods_lists.append(method_hooks.get(False, {}).get(event.type, []))
         return _CallableSets(
