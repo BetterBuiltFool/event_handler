@@ -54,13 +54,40 @@ class KeyListener(BaseManager):
         # Inversion of _class_listeners. Method as key, bind name
         self._class_listener_binds: dict[Callable, list[str]] = {}
 
+    @overload
+    def bind(
+        self,
+        key_bind_name: str,
+        default_key: Optional[int],
+        default_mod: Optional[int],
+        event_type: Optional[int],
+    ) -> Callable:
+        """
+        Adds a bind field to the key registry, and associates the following
+        callable with that field so when the key associated with the field is
+        pressed, the callable is called. If the field does not exist, it
+        is created.
+
+        :param key_bind_name: Reference name for the binding function.
+        Callable events will be hooked by this name.
+        :param default_key:
+        Pygame key constant used to fill the registry if the bind doesn't
+        exist or does not have an assigned key, defaults to None
+        :param default_mod: Mod keys required for activating the key bind. None means
+        the bind works with any mod keys pressed. pygame.KMOD_NONE means it requires no
+        mod keys to be pressed. If using multiple, use bitwise OR to combine, defaults
+        to None
+        :param event_type: Event that the the bind is to be called on. Must be
+        specified as a keyword. For keys, should be either pygame.KEYDOWN or
+        pygame.KEYUP. Defaults to pygame.KEYDOWN
+        """
+
+    @overload
     def bind(
         self,
         key_bind_name: str,
         default_key: Optional[int] = None,
         default_mod: Optional[int] = None,
-        default_joystick_data: Optional[dict] = None,
-        event_type: int = pygame.KEYDOWN,
     ) -> Callable:
         """
         Adds a bind field to the key registry, and associates the following
@@ -78,10 +105,77 @@ class KeyListener(BaseManager):
         mod keys to be pressed. If using multiple, use bitwise OR to combine, defaults
         to None
         """
-        if default_joystick_data is not None:
+
+    @overload
+    def bind(
+        self,
+        key_bind_name: str,
+        default_joystick_data: Optional[dict],
+        event_type: Optional[int],
+    ) -> Callable:
+        """
+        Adds a bind field to the key registry, and associates the following
+        callable with that field so when the key associated with the field is
+        pressed, the callable is called. If the field does not exist, it
+        is created.
+
+        :param key_bind_name: Reference name for the binding function.
+        Callable events will be hooked by this name.
+        :param default_joystick_data: A dictionary containing the needed data for a the
+        desired joystick event. See documentation for more information.
+        :param event_type: Event that the the bind is to be called on. Must be
+        specified as a keyword. For joystick/controller, should be a joystick event. See
+        documentation for full list.
+        """
+
+    @overload
+    def bind(
+        self, key_bind_name: str, default_joystick_data: Optional[dict] = None
+    ) -> Callable:
+        """
+        Adds a bind field to the key registry, and associates the following
+        callable with that field so when the key associated with the field is
+        pressed, the callable is called. If the field does not exist, it
+        is created.
+
+        If the event type is not supplied, it is intuited from the joystick data.
+
+        :param key_bind_name: Reference name for the binding function.
+        Callable events will be hooked by this name.
+        :param default_joystick_data: A dictionary containing the needed data for a the
+        desired joystick event. See documentation for more information.
+        """
+
+    def bind(self, key_bind_name: str, *args, **kwds) -> Callable:
+        event_type: int
+        is_stick = False
+        default_key: Optional[int] = kwds.get("default_key", None)
+        default_mod: Optional[int] = kwds.get("default_mod", None)
+        default_joystick_data: Optional[dict] = kwds.get("default_joystick_data", None)
+        for index, arg in enumerate(args):
+            if type(arg) is dict:
+                is_stick = True
+                default_joystick_data = arg
+                break
+            if index == 0:
+                default_key = arg
+            elif index == 1:
+                default_mod = arg
+
+        if is_stick:
             self.joy_map.generate_bind(key_bind_name, default_joystick_data)
+            # Attempt to intuit the desired event from the provided dict
+            default_stick_event = pygame.JOYBUTTONDOWN
+            if default_joystick_data is not None:
+                joy_keys = default_joystick_data.keys()
+                if "axis" in joy_keys:
+                    default_stick_event = pygame.JOYAXISMOTION
+                elif "hat" in joy_keys:
+                    default_stick_event = pygame.JOYHATMOTION
+            event_type = kwds.get("event_type", default_stick_event)
         else:
             self.key_map.generate_bind(key_bind_name, default_key, default_mod)
+            event_type = kwds.get("event_type", pygame.KEYDOWN)
 
         def decorator(responder: Callable) -> Callable:
             # Regardless, add the responder to the bind within our hook dict
