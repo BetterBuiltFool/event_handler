@@ -53,10 +53,7 @@ class JoyMap:
         return tuple(pairs)  # type: ignore
 
     def _convert_pairs(self, event_key: tuple[tuple]) -> dict:
-        event_dict: dict = {}
-        for key, value in event_key:
-            event_dict.update({key, value})
-        return event_dict
+        return dict((key, value) for key, value in event_key)
 
     def get(self, event: pygame.Event, default: Optional[list] = None) -> list[str]:
         """
