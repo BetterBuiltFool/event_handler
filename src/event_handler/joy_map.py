@@ -9,8 +9,7 @@ import pygame
 # 'value' is a read out value, and typically analog, so we don't want that captured
 # 'instance_id" is the specific joystick instace, we want to call regardless of that
 # 'joy' is deprecated and can safely be ignored
-# No controller I can find info for has more than one 'hat', so this will always be 0
-_invalid_params = ["value", "instance_id", "joy", "hat"]
+_invalid_params = ["value", "instance_id", "joy"]
 
 
 @dataclass
