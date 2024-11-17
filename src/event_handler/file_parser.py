@@ -18,11 +18,11 @@ class JSONParser(FileParser):
         :param in_file: Target file with the required data.
         :return: Created KeyMap
         """
-        maps = json.load(in_file)
+        maps: dict = json.load(in_file)
         key_map = KeyMap()
-        key_map.key_binds = JSONParser._unpack_keys(maps)
+        key_map.key_binds = JSONParser._unpack_keys(maps.get("keys", {}))
         joy_map = JoyMap()
-        joy_map._joy_binds = JSONParser._unpack_joystick(maps)
+        joy_map._joy_binds = JSONParser._unpack_joystick(maps.get("controller", {}))
         return key_map, joy_map
 
     @staticmethod
@@ -33,7 +33,9 @@ class JSONParser(FileParser):
         :param key_map: KeyMap object being saved
         :param out_file: File receiving the data
         """
-        maps = key_map.pack_binds()
+        bind_keys = key_map.pack_binds()
+        bind_joysticks = joy_map.pack_binds()
+        maps = {"keys": bind_keys, "controller": bind_joysticks}
         json.dump(maps, out_file)
 
     @staticmethod
