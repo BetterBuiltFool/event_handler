@@ -197,8 +197,6 @@ class TestJSONParser(unittest.TestCase):
             + r' "null": [["bind3", null]]}'
         )
 
-        print(json_string)
-
         infile = StringIO()
         infile.write(json_string)
         infile.seek(0)
