@@ -104,7 +104,7 @@ class JoyMap:
                     else None
                 ),
                 [],
-            )
+            ).append(bind_name)
 
     def _rebind(
         self, bind_name: str, new_joystick_data: Optional[tuple[tuple]] = None
