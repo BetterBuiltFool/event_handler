@@ -45,14 +45,30 @@ class JSONParser(FileParser):
         :return: Dictionary compatible with KeyMap
         """
         unpacked_dict: dict[int | None, list[KeyBind]] = {}
-        for key_name, bind_list in maps.items():
+        for bind_name, key_data in maps.items():
+            key_name, mod = key_data
             key_code = None
-            if key_name != "null":
+            if key_name is not None:
                 key_code = pygame.key.key_code(key_name)
-            binds = [KeyBind(bind_name=bind[0], mod=bind[1]) for bind in bind_list]
-            unpacked_dict.update({key_code: binds})
+            unpacked_dict.setdefault(key_code, []).append(KeyBind(bind_name, mod))
+            # binds = [KeyBind(bind_name=bind[0], mod=bind[1]) for bind in bind_list]
+            # unpacked_dict.update({key_code: binds})
         return unpacked_dict
 
     @staticmethod
     def _unpack_joystick(maps: dict) -> dict:
-        return super()._unpack_joystick(maps)
+        """
+        Converts the JSON-styled dict into a dict compatible with a JoyMap
+
+        :param maps: JSON-style dictionary of joystick binds
+        :return: Dictionary compatible with JoyMap
+        """
+        unpacked_dict: dict[tuple, list[str]] = {}
+        for bind_name, joy_data in maps.items():
+            joy_data_points: list[tuple] = []
+            for data_point in joy_data:
+                joy_data_points.append((data_point[0], data_point[1]))
+            fixed_joy_data: tuple = tuple(joy_data_points)
+            unpacked_dict.setdefault(fixed_joy_data, []).append(bind_name)
+
+        return unpacked_dict
