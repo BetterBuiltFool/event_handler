@@ -3,6 +3,7 @@ from typing import TextIO
 
 from .key_manager import FileParser
 from .key_map import KeyMap, KeyBind
+from .joy_map import JoyMap
 
 import pygame
 
@@ -10,7 +11,7 @@ import pygame
 class JSONParser(FileParser):
 
     @staticmethod
-    def load(in_file: TextIO) -> KeyMap:
+    def load(in_file: TextIO) -> tuple[KeyMap, JoyMap]:
         """
         Converts the given JSON file into a KeyMap
 
@@ -19,11 +20,13 @@ class JSONParser(FileParser):
         """
         maps = json.load(in_file)
         key_map = KeyMap()
-        key_map.key_binds = JSONParser._unpack_binds(maps)
-        return key_map
+        key_map.key_binds = JSONParser._unpack_keys(maps)
+        joy_map = JoyMap()
+        joy_map._joy_binds = JSONParser._unpack_joystick(maps)
+        return key_map, joy_map
 
     @staticmethod
-    def save(key_map: KeyMap, out_file: TextIO) -> None:
+    def save(key_map: KeyMap, joy_map: JoyMap, out_file: TextIO) -> None:
         """
         Saves the KeyMap as a JSON string
 
@@ -34,7 +37,7 @@ class JSONParser(FileParser):
         json.dump(maps, out_file)
 
     @staticmethod
-    def _unpack_binds(maps: dict) -> dict:
+    def _unpack_keys(maps: dict) -> dict:
         """
         Converts the JSON-styled dict into a dict compatible with a KeyMap
 
@@ -49,3 +52,7 @@ class JSONParser(FileParser):
             binds = [KeyBind(bind_name=bind[0], mod=bind[1]) for bind in bind_list]
             unpacked_dict.update({key_code: binds})
         return unpacked_dict
+
+    @staticmethod
+    def _unpack_joystick(maps: dict) -> dict:
+        return super()._unpack_joystick(maps)

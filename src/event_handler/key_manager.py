@@ -20,15 +20,19 @@ class FileParser(ABC):
 
     @staticmethod
     @abstractmethod
-    def load(in_file: TextIO) -> KeyMap: ...
+    def load(in_file: TextIO) -> tuple[KeyMap, JoyMap]: ...
 
     @staticmethod
     @abstractmethod
-    def save(key_map: KeyMap, out_file: TextIO) -> None: ...
+    def save(key_map: KeyMap, joy_map: JoyMap, out_file: TextIO) -> None: ...
 
     @staticmethod
     @abstractmethod
-    def _unpack_binds(maps: dict) -> dict: ...
+    def _unpack_keys(maps: dict) -> dict: ...
+
+    @staticmethod
+    @abstractmethod
+    def _unpack_joystick(maps: dict) -> dict: ...
 
 
 class KeyListener(BaseManager):
@@ -534,8 +538,9 @@ class KeyListener(BaseManager):
         Use one that matches the data structure
         """
         with open(file_path, "r") as file:
-            binds = parser.load(file)
-            cls.key_map.merge(binds)
+            key_binds, joy_binds = parser.load(file)
+            cls.key_map.merge(key_binds)
+            cls.joy_map.merge(joy_binds)
 
     @classmethod
     def save_to_file(cls, file_path: Path, parser: Type[FileParser]) -> None:
@@ -547,7 +552,7 @@ class KeyListener(BaseManager):
         :param parser: Parser used to encode the file.
         """
         with open(file_path, "w") as file:
-            parser.save(cls.key_map, file)
+            parser.save(cls.key_map, cls.joy_map, file)
 
 
 def notifyKeyListeners(event: pygame.Event) -> None:
