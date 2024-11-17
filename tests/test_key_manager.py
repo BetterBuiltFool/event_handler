@@ -19,6 +19,10 @@ from src.event_handler.key_map import (  # noqa: E402
     KeyMap,
 )
 
+from src.event_handler.joy_map import (  # noqa: E402
+    JoyMap,
+)
+
 from src.event_handler.file_parser import (  # noqa: E402
     JSONParser,
 )
@@ -136,6 +140,161 @@ class TestKeyMap(unittest.TestCase):
         }
 
         self.assertDictEqual(packed_dict, comp_dict)
+
+
+class TestJoyMap(unittest.TestCase):
+
+    def setUp(self):
+        self.joymap = JoyMap()
+
+    def tearDown(self):
+        self.joymap._joy_binds.clear()
+
+    def test_convert_event(self):
+        joystick_data = {"button": 0}
+        converted_data = self.joymap._convert_event(joystick_data)
+
+        match_data = (("button", 0),)
+
+        self.assertEqual(converted_data, match_data)
+
+        event = pygame.Event(pygame.JOYBUTTONDOWN, button=0, instance_id=0, joy=0)
+
+        converted_data = self.joymap._convert_event(event)
+
+        self.assertEqual(converted_data, match_data)
+
+        event = pygame.Event(
+            pygame.JOYAXISMOTION, axis=0, instance_id=0, joy=0, value=0.5
+        )
+
+        match_data = (("axis", 0),)
+
+        converted_data = self.joymap._convert_event(event)
+
+        self.assertEqual(converted_data, match_data)
+
+        event = pygame.Event(
+            pygame.JOYHATMOTION, hat=0, instance_id=0, joy=0, value=(0, 0)
+        )
+
+        match_data = (("hat", 0),)
+
+        converted_data = self.joymap._convert_event(event)
+
+        self.assertEqual(converted_data, match_data)
+
+    def test_convert_pairs(self):
+        key_data = (("button", 0),)
+        converted_data = self.joymap._convert_pairs(key_data)
+
+        match_data = {"button": 0}
+
+        self.assertEqual(converted_data, match_data)
+
+    def test_generate_bind(self):
+        bind_name = "test_bind"
+        joystick_data = {"button": 0}
+        self.joymap.generate_bind(bind_name, joystick_data)
+
+        match_data = (("button", 0),)
+
+        self.assertIn(bind_name, self.joymap._joy_binds.get(match_data, []))
+
+    def test_get(self):
+        bind_name = "test_bind"
+        joystick_data = {"button": 0}
+        self.joymap.generate_bind(bind_name, joystick_data)
+
+        event = pygame.Event(pygame.JOYBUTTONDOWN, button=0, instance_id=0, joy=0)
+
+        bind_list = self.joymap.get(event)
+
+        self.assertIn(bind_name, bind_list)
+
+    def test_get_bound_joystick_event(self):
+        bind_name = "test_bind"
+        joystick_data = {"button": 0}
+        self.joymap.generate_bind(bind_name, joystick_data)
+
+        returned_data = self.joymap.get_bound_joystick_event(bind_name)
+
+        self.assertEqual(returned_data, joystick_data)
+
+    def test_remove_bind(self):
+        bind_name = "test_bind"
+        joystick_data = {"button": 0}
+        self.joymap.generate_bind(bind_name, joystick_data)
+
+        match_data = (("button", 0),)
+
+        self.assertIn(bind_name, self.joymap._joy_binds.get(match_data, []))
+
+        self.joymap.remove_bind(bind_name)
+
+        self.assertNotIn(bind_name, self.joymap._joy_binds.get(match_data, []))
+
+    def test_rebind(self):
+        bind_name = "test_bind"
+        joystick_data = {"button": 0}
+        self.joymap.generate_bind(bind_name, joystick_data)
+
+        match_data = (("button", 0),)
+
+        self.assertIn(bind_name, self.joymap._joy_binds.get(match_data, []))
+
+        new_joystick_data = {"button": 1}
+
+        new_match_data = (("button", 1),)
+
+        self.joymap.rebind(bind_name, new_joystick_data)
+
+        self.assertNotIn(bind_name, self.joymap._joy_binds.get(match_data, []))
+
+        self.assertIn(bind_name, self.joymap._joy_binds.get(new_match_data, []))
+
+    def test_merge(self):
+        bind_name = "test_bind"
+        joystick_data = {"button": 0}
+        self.joymap.generate_bind(bind_name, joystick_data)
+
+        match_data1 = (("button", 0),)
+
+        bind_name2 = "test_bind2"
+        joystick_data2 = {"button": 0}
+        self.joymap.generate_bind(bind_name2, joystick_data2)
+
+        self.assertIn(bind_name, self.joymap._joy_binds.get(match_data1, []))
+        self.assertIn(bind_name2, self.joymap._joy_binds.get(match_data1, []))
+
+        other_map = JoyMap()
+
+        bind_name3 = "test_bind2"
+        joystick_data3 = {"button": 1}
+        other_map.generate_bind(bind_name3, joystick_data3)
+
+        self.joymap.merge(other_map)
+
+        new_match_data = (("button", 1),)
+
+        self.assertIn(bind_name, self.joymap._joy_binds.get(match_data1, []))
+        self.assertNotIn(bind_name2, self.joymap._joy_binds.get(match_data1, []))
+        self.assertIn(bind_name2, self.joymap._joy_binds.get(new_match_data, []))
+
+    def test_pack_binds(self):
+        bind_name = "test_bind"
+        joystick_data = {"button": 0}
+        self.joymap.generate_bind(bind_name, joystick_data)
+
+        bind_name2 = "test_bind2"
+        joystick_data2 = {"button": 0}
+        self.joymap.generate_bind(bind_name2, joystick_data2)
+
+        test_dict = {"test_bind": (("button", 0),), "test_bind2": (("button", 0),)}
+
+        packed_dict = self.joymap.pack_binds()
+
+        self.assertEqual(test_dict, packed_dict)
 
 
 class TestJSONParser(unittest.TestCase):
