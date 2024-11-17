@@ -143,12 +143,12 @@ class KeyMap:
         """
         Packages binds into a serializable dictionary that is more easily saved.
         """
-        packed_dict: dict[str, list] = {}
-        for key_code, binds in self.key_binds.items():
-            key_name = "null"
-            if key_code:
-                key_name = pygame.key.name(key_code)
-            bind_list = [(bind.bind_name, bind.mod) for bind in binds]
-            packed_dict.update({key_name: bind_list})
+        packed_dict: dict[str, tuple[str, int | None]] = {}
+        for key_code, bind_list in self.key_binds.items():
+            for bind in bind_list:
+                key_name = "null"
+                if key_code:
+                    key_name = pygame.key.name(key_code)
+                packed_dict.update({bind.bind_name: (key_name, bind.mod)})
 
         return packed_dict
