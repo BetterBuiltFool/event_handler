@@ -1,4 +1,5 @@
 from io import StringIO
+import json
 import pathlib
 import sys
 import threading
@@ -133,7 +134,6 @@ class TestKeyMap(unittest.TestCase):
         self.keymap.generate_bind("bind3", None)
 
         packed_dict = self.keymap.pack_binds()
-        print(packed_dict)
 
         comp_dict = {
             "bind0": ("0", None),
@@ -141,8 +141,6 @@ class TestKeyMap(unittest.TestCase):
             "bind2": ("0", None),
             "bind3": (None, None),
         }
-
-        print(comp_dict)
 
         self.assertDictEqual(packed_dict, comp_dict)
 
@@ -342,13 +340,9 @@ class TestJSONParser(unittest.TestCase):
 
         outfile.seek(0)
 
-        json_string = (
-            r'{"keys": '
-            r'{"bind0": ["0", null], "bind1": ["0", null], '
-            r'"bind2": ["0", null], "bind3": [null, null]}, '
-            r'"controller": {}'
-            r"}"
-        )
+        maps = {"keys": keymap.pack_binds(), "controller": joymap.pack_binds()}
+
+        json_string = json.dumps(maps, indent=2)
 
         out_string = outfile.read()
 
