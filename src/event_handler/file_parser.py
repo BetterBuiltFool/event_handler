@@ -36,7 +36,7 @@ class JSONParser(FileParser):
         bind_keys = key_map.pack_binds()
         bind_joysticks = joy_map.pack_binds()
         maps = {"keys": bind_keys, "controller": bind_joysticks}
-        json.dump(maps, out_file)
+        json.dump(maps, out_file, indent=2)
 
     @staticmethod
     def _unpack_keys(maps: dict) -> dict:
