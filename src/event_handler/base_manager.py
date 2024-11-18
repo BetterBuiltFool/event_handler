@@ -87,19 +87,31 @@ class BaseManager(ABC):
 
     def notify(self, event: pygame.Event) -> None:
         """
-        Finds all listeners for a given event, and calls them in a new thread
+        Finds all listeners for a given event, and calls them in their respective modes
 
-        :param event: _description_
+        :param event: Target event for the listeners
         """
         callables = self._get_callables(event)
         self._handle_concurrent(event, callables)
         self._handle_sequential(event, callables)
 
     def notify_concurrent(self, event: pygame.Event) -> None:
+        """
+        Finds all listeners that are called concurrently for the given event, and calls
+        them in a new thread
+
+        :param event: Target event for the listeners
+        """
         callables = self._get_callables(event)
         self._handle_concurrent(event, callables)
 
     def notify_sequential(self, event: pygame.Event) -> None:
+        """
+        Finds all listeners that are called sequentially for the given event, and calls
+        them one at a time
+
+        :param event: Target event for the listeners
+        """
         callables = self._get_callables(event)
         self._handle_sequential(event, callables)
 
