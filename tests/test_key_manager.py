@@ -1,4 +1,5 @@
 from io import StringIO
+import json
 import pathlib
 import sys
 import threading
@@ -135,8 +136,10 @@ class TestKeyMap(unittest.TestCase):
         packed_dict = self.keymap.pack_binds()
 
         comp_dict = {
-            "0": [("bind0", None), ("bind1", None), ("bind2", None)],
-            "null": [("bind3", None)],
+            "bind0": ("0", None),
+            "bind1": ("0", None),
+            "bind2": ("0", None),
+            "bind3": (None, None),
         }
 
         self.assertDictEqual(packed_dict, comp_dict)
@@ -299,7 +302,7 @@ class TestJoyMap(unittest.TestCase):
 
 class TestJSONParser(unittest.TestCase):
 
-    def test_unpack_binds(self) -> None:
+    def test_unpack_keys(self) -> None:
 
         keymap = KeyMap()
 
@@ -309,7 +312,7 @@ class TestJSONParser(unittest.TestCase):
 
         packed = keymap.pack_binds()
 
-        unpacked = JSONParser._unpack_binds(packed)
+        unpacked = JSONParser._unpack_keys(packed)
 
         comp_dict = {
             pygame.K_0: [
@@ -325,6 +328,7 @@ class TestJSONParser(unittest.TestCase):
     def test_save(self) -> None:
 
         keymap = KeyMap()
+        joymap = JoyMap()
 
         for i in range(3):
             keymap.generate_bind(f"bind{i}", pygame.K_0)
@@ -332,16 +336,17 @@ class TestJSONParser(unittest.TestCase):
 
         outfile = StringIO()
 
-        JSONParser.save(keymap, outfile)
+        JSONParser.save(keymap, joymap, outfile)
 
         outfile.seek(0)
 
-        json_string = (
-            r'{"0": [["bind0", null], ["bind1", null], ["bind2", null]],'
-            r' "null": [["bind3", null]]}'
-        )
+        maps = {"keys": keymap.pack_binds(), "controller": joymap.pack_binds()}
 
-        self.assertEqual(outfile.read(), json_string)
+        json_string = json.dumps(maps, indent=2)
+
+        out_string = outfile.read()
+
+        self.assertEqual(out_string, json_string)
 
     def test_load(self) -> None:
 
@@ -352,15 +357,18 @@ class TestJSONParser(unittest.TestCase):
         keymap.generate_bind("bind3", None)
 
         json_string = (
-            r'{"0": [["bind0", null], ["bind1", null], ["bind2", null]],'
-            + r' "null": [["bind3", null]]}'
+            r'{"keys": '
+            r'{"bind0": ["0", null], "bind1": ["0", null], '
+            r'"bind2": ["0", null], "bind3": [null, null]}, '
+            r'"controller": {}'
+            r"}"
         )
 
         infile = StringIO()
         infile.write(json_string)
         infile.seek(0)
 
-        new_map = JSONParser.load(infile)
+        new_map, _ = JSONParser.load(infile)
 
         for key in new_map.key_binds:
             self.assertEqual(new_map.key_binds.get(key), keymap.key_binds.get(key))
