@@ -435,8 +435,9 @@ class KeyListener(BaseManager):
         """
         Clears all callables from the specified bind name
 
-        :param bind_name: _description_
-        :param eliminate_bind: _description_, defaults to False
+        :param bind_name: he name of the bind being cleared
+        :param eliminate_bind: Boolean for determining if the bind should be removed
+        from the JoyMap and KeyMap, defaults to False
         """
         if eliminate_bind:
             bind = self._key_hooks.pop(bind_name, None)
@@ -485,8 +486,6 @@ class KeyListener(BaseManager):
     def _get_callables(self, event: pygame.Event) -> _CallableSets:
         """
         Calls all registered functions and methods that make use of the given event
-
-        TODO Seperate into notify_concurrent and notify_sequential
 
         :param event: pygame event to be passed to the callables
         """

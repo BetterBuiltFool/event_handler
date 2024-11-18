@@ -112,8 +112,9 @@ class JoyMap:
         """
         Converts a bind from its current expected data to the new data for matching.
 
-        :param bind_name: _description_
-        :param new_joystick_data: _description_, defaults to None
+        :param bind_name: he name of the bind whose calling event is changing.
+        :param new_joystick_data: The new joystick event data, defaults to None.
+        If none, the bind name is considered unbound, and will not be called by notify()
         """
         self._rebind(
             bind_name,

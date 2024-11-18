@@ -29,6 +29,15 @@ class EventManager(BaseManager):
         self._class_listener_events: dict[Callable, list[int]] = {}
 
     def register(self, event_type: int) -> Callable:
+        """
+        Takes a callable item such as a function, and places it in the appropriate set
+        of functions with the target event. Whenever the event manager is notified of
+        the compatible event type, it will call the function.
+
+        :param event_type: Pygame event code
+        :return: Returns the registered callable, unchanged.
+        """
+
         def decorator(listener: Callable) -> Callable:
             is_concurrent = not hasattr(listener, "_runs_sequential")
             event_dict = self._listeners.setdefault(event_type, {})
@@ -185,5 +194,7 @@ def getEventManager(handle: str) -> EventManager:
     """
     Finds the handler that matches the given handle.
     If one does not exist, it is created.
+
+    :param handle: A string for identifying an event manager instance.
     """
     return EventManager.handlers.setdefault(handle, EventManager(handle))

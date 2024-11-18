@@ -13,10 +13,10 @@ class JSONParser(FileParser):
     @staticmethod
     def load(in_file: TextIO) -> tuple[KeyMap, JoyMap]:
         """
-        Converts the given JSON file into a KeyMap
+        Converts the given JSON file into a KeyMap and JoyMap
 
         :param in_file: Target file with the required data.
-        :return: Created KeyMap
+        :return: Created KeyMap and JoyMap
         """
         maps: dict = json.load(in_file)
         key_map = KeyMap()
@@ -28,7 +28,7 @@ class JSONParser(FileParser):
     @staticmethod
     def save(key_map: KeyMap, joy_map: JoyMap, out_file: TextIO) -> None:
         """
-        Saves the KeyMap as a JSON string
+        Saves the KeyMap and JoyMap as a JSON string
 
         :param key_map: KeyMap object being saved
         :param out_file: File receiving the data
