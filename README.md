@@ -297,14 +297,14 @@ KEYBINDS.rebind("example_name", pygame.K_m, pygame.KMOD_ALT)
 
 This changes the key for all functions bound to "example_name", which now get called when Alt+M is pressed instead of Shift+P.
 
-Key Maps can also be saved and loaded from file. This requires a path to the desired file location, including the file name and extension, and a File Parser to convert the data. The File Parser is a static type, and can be passed directly without be instantiated.
+Key Maps and Joy Maps can also be saved and loaded from file. This requires a path to the desired file location, including the file name and extension. If the file type is supported, it will be intuited from the file extension. Unsupported file types can have a File Parser class passed to force a specific encoding.
 
 ```python
 import simple_events
 
 KEYBINDS = simple_events.getKeyListener("Saveloader")
 
-KEYBINDS.save_to_file("path/to/the/file.json", JSONParser)
+KEYBINDS.save_to_file("path/to/the/file.json")
 ```
 
 In this case, the current KeyMap will be saved to file.json, and will use the JSON format.
@@ -316,7 +316,7 @@ import simple_events
 
 KEYBINDS = simple_events.getKeyListener("Saveloader")
 
-KEYBINDS.load_from_file("path/to/source/key_binds.json", JSONParser)
+KEYBINDS.load_from_file("path/to/source/key_binds.json")
 ```
 
 This will try to load key_binds.json and merge the key binds into the current Key Map. The loaded key binds take precedence over existing ones, but if a key bind exists in the current map but not the loaded one, it is carried over without modification.
