@@ -33,7 +33,7 @@
 <br />
 <!--
 <div align="center">
-  <a href="https://github.com/BetterBuiltFool/event_handler">
+  <a href="https://github.com/BetterBuiltFool/simple_events">
     <img src="images/logo.png" alt="Logo" width="80" height="80">
   </a>
 -->
@@ -43,16 +43,16 @@
   <p align="center">
     A simple, decorator-based event system for Pygame.
     <br />
-    <a href="https://github.com/BetterBuiltFool/event_handler"><strong>Explore the docs »</strong></a>
+    <a href="https://github.com/BetterBuiltFool/simple_events"><strong>Explore the docs »</strong></a>
     <br />
     <br />
     <!--
-    <a href="https://github.com/BetterBuiltFool/event_handler">View Demo</a>
+    <a href="https://github.com/BetterBuiltFool/simple_events">View Demo</a>
     ·
     -->
-    <a href="https://github.com/BetterBuiltFool/event_handler/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
+    <a href="https://github.com/BetterBuiltFool/simple_events/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
     ·
-    <a href="https://github.com/BetterBuiltFool/event_handler/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
+    <a href="https://github.com/BetterBuiltFool/simple_events/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
   </p>
 </div>
 
@@ -431,7 +431,7 @@ to mark a function as sequential. Sequential functions and methods will called a
     - [ ] Nested Feature
 -->
 
-See the [open issues](https://github.com/BetterBuiltFool/event_handler/issues) for a full list of proposed features (and known issues).
+See the [open issues](https://github.com/BetterBuiltFool/simple_events/issues) for a full list of proposed features (and known issues).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -456,8 +456,8 @@ Don't forget to give the project a star! Thanks again!
 
 ### Top contributors:
 
-<a href="https://github.com/BetterBuiltFool/event_handler/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=BetterBuiltFool/event_handler" alt="contrib.rocks image" />
+<a href="https://github.com/BetterBuiltFool/simple_events/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=BetterBuiltFool/simple_events" alt="contrib.rocks image" />
 </a>
 -->
 
@@ -480,7 +480,7 @@ Better Built Fool - betterbuiltfool@gmail.com
  - [@twitter_handle](https://twitter.com/twitter_handle)
 -->
 
-Project Link: [https://github.com/BetterBuiltFool/event_handler](https://github.com/BetterBuiltFool/event_handler)
+Project Link: [https://github.com/BetterBuiltFool/simple_events](https://github.com/BetterBuiltFool/simple_events)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -499,16 +499,16 @@ Project Link: [https://github.com/BetterBuiltFool/event_handler](https://github.
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[contributors-shield]: https://img.shields.io/github/contributors/BetterBuiltFool/event_handler.svg?style=for-the-badge
-[contributors-url]: https://github.com/BetterBuiltFool/event_handler/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/BetterBuiltFool/event_handler.svg?style=for-the-badge
-[forks-url]: https://github.com/BetterBuiltFool/event_handler/network/members
-[stars-shield]: https://img.shields.io/github/stars/BetterBuiltFool/event_handler.svg?style=for-the-badge
-[stars-url]: https://github.com/BetterBuiltFool/event_handler/stargazers
-[issues-shield]: https://img.shields.io/github/issues/BetterBuiltFool/event_handler.svg?style=for-the-badge
-[issues-url]: https://github.com/BetterBuiltFool/event_handler/issues
-[license-shield]: https://img.shields.io/github/license/BetterBuiltFool/event_handler.svg?style=for-the-badge
-[license-url]: https://github.com/BetterBuiltFool/event_handler/blob/main/LICENSE
+[contributors-shield]: https://img.shields.io/github/contributors/BetterBuiltFool/simple_events.svg?style=for-the-badge
+[contributors-url]: https://github.com/BetterBuiltFool/simple_events/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/BetterBuiltFool/simple_events.svg?style=for-the-badge
+[forks-url]: https://github.com/BetterBuiltFool/simple_events/network/members
+[stars-shield]: https://img.shields.io/github/stars/BetterBuiltFool/simple_events.svg?style=for-the-badge
+[stars-url]: https://github.com/BetterBuiltFool/simple_events/stargazers
+[issues-shield]: https://img.shields.io/github/issues/BetterBuiltFool/simple_events.svg?style=for-the-badge
+[issues-url]: https://github.com/BetterBuiltFool/simple_events/issues
+[license-shield]: https://img.shields.io/github/license/BetterBuiltFool/simple_events.svg?style=for-the-badge
+[license-url]: https://github.com/BetterBuiltFool/simple_events/blob/main/LICENSE
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://linkedin.com/in/linkedin_username
 [product-screenshot]: images/screenshot.png
