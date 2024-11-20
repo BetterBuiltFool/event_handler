@@ -1,11 +1,47 @@
-import json
-from typing import TextIO
+from __future__ import annotations
 
-from .key_manager import FileParser
+from abc import ABC, abstractmethod
+import json
+import pathlib
+from typing import TextIO, Type
+
 from .key_map import KeyMap, KeyBind
 from .joy_map import JoyMap
 
 import pygame
+
+
+def _get_parser_from_path(path: pathlib.Path) -> Type[FileParser]:
+    file_type = path.suffix
+    parser = None
+    match file_type:
+        case ".json":
+            parser = JSONParser
+        case _:
+            raise ValueError(
+                f'File type "{file_type}" is not implicitly supported. Please '
+                "explicitly name a FileParser type."
+            )
+    return parser
+
+
+class FileParser(ABC):
+
+    @staticmethod
+    @abstractmethod
+    def load(in_file: TextIO) -> tuple[KeyMap, JoyMap]: ...
+
+    @staticmethod
+    @abstractmethod
+    def save(key_map: KeyMap, joy_map: JoyMap, out_file: TextIO) -> None: ...
+
+    @staticmethod
+    @abstractmethod
+    def _unpack_keys(maps: dict) -> dict: ...
+
+    @staticmethod
+    @abstractmethod
+    def _unpack_joystick(maps: dict) -> dict: ...
 
 
 class JSONParser(FileParser):
