@@ -9,8 +9,8 @@ import pygame
 
 sys.path.append(str(pathlib.Path.cwd()))
 
-from src.event_handler import getEventManager  # noqa: E402
-from src.event_handler.event_manager import EventManager  # noqa: E402
+from src.simple_events import getEventManager  # noqa: E402
+from src.simple_events.event_manager import EventManager  # noqa: E402
 
 
 class TestEventManager(unittest.TestCase):

@@ -10,21 +10,21 @@ import pygame
 
 sys.path.append(str(pathlib.Path.cwd()))
 
-from src.event_handler.key_manager import (  # noqa: E402
+from src.simple_events.key_manager import (  # noqa: E402
     getKeyListener,
     KeyListener,
 )
 
-from src.event_handler.key_map import (  # noqa: E402
+from src.simple_events.key_map import (  # noqa: E402
     KeyBind,
     KeyMap,
 )
 
-from src.event_handler.joy_map import (  # noqa: E402
+from src.simple_events.joy_map import (  # noqa: E402
     JoyMap,
 )
 
-from src.event_handler.file_parser import (  # noqa: E402
+from src.simple_events.file_parser import (  # noqa: E402
     JSONParser,
 )
 
