@@ -38,7 +38,7 @@
   </a>
 -->
 
-<h3 align="center">Event Handler</h3>
+<h3 align="center">Simple Events</h3>
 
   <p align="center">
     A simple, decorator-based event system for Pygame.
@@ -97,8 +97,8 @@
 [![Product Name Screen Shot][product-screenshot]](https://example.com)
 -->
 
-Event Handler is a simple system that uses decorator syntax to register functions to Pygame events, allowing those function to be fired whenever the assigned event occurs.
-It also features a keybind manager, which similarly can assign functions to remappable keybinds.
+Simple Events is a simple system that uses decorator syntax to register functions to Pygame events, allowing those function to be fired whenever the assigned event occurs.
+It also features a keybind manager, which similarly can assign functions to remappable keybinds and controller binds.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -113,12 +113,12 @@ Event handler is written in pure python, with no system dependencies, and should
 Event handler can be installed from the [PyPI][pypi-url] using [pip][pip-url]:
 
 ```sh
-pip install event_handler
+pip install simple_events
 ```
 
 and can be imported for use with:
 ```python
-import event_handler
+import simple_events
 ```
 
 Event handler also require Pygame Community edition to be installed.
@@ -139,9 +139,9 @@ _For more examples, please refer to the [Documentation](https://example.com)_
 ### Event Manager
 
 ```python
-import event_handler
+import simple_events
 
-LOCAL_MANAGER = event_handler.getEventManager("Example")
+LOCAL_MANAGER = simple_events.getEventManager("Example")
 ```
 
 This will generate an instance with the handle "Example", which will be stored by the manager system. If another module calls for that same handle, both modules will share the same event manager. Modules can even have multiple event managers to allow for control over execution context. Really, you can use as many or as few managers as desired.
@@ -221,9 +221,9 @@ For more information on Pygame events, including a list of event type with descr
 ### Key Listener
 
 ```python
-import event_handler
+import simple_events
 
-KEYBINDS = event_handler.getKeyListener("Example")
+KEYBINDS = simple_events.getKeyListener("Example")
 ```
 
 Key Listeners are seperate from event managers and can share handles without conflict.
@@ -285,9 +285,9 @@ Key Listeners rely on the Key Map to determine which binds to call when a key is
 Key Maps can be modified via a Key Listener.
 
 ```python
-import event_handler
+import simple_events
 
-KEYBINDS = event_handler.getKeyListener("Remapper")
+KEYBINDS = simple_events.getKeyListener("Remapper")
 @KEYBINDS.bind("example_name", pygame.K_p, pygame.KMOD_SHIFT)
 def some_function(_):
     ...
@@ -300,9 +300,9 @@ This changes the key for all functions bound to "example_name", which now get ca
 Key Maps can also be saved and loaded from file. This requires a path to the desired file location, including the file name and extension, and a File Parser to convert the data. The File Parser is a static type, and can be passed directly without be instantiated.
 
 ```python
-import event_handler
+import simple_events
 
-KEYBINDS = event_handler.getKeyListener("Saveloader")
+KEYBINDS = simple_events.getKeyListener("Saveloader")
 
 KEYBINDS.save_to_file("path/to/the/file.json", JSONParser)
 ```
@@ -312,9 +312,9 @@ In this case, the current KeyMap will be saved to file.json, and will use the JS
 A Key Map can be loaded similarly.
 
 ```python
-import event_handler
+import simple_events
 
-KEYBINDS = event_handler.getKeyListener("Saveloader")
+KEYBINDS = simple_events.getKeyListener("Saveloader")
 
 KEYBINDS.load_from_file("path/to/source/key_binds.json", JSONParser)
 ```
@@ -330,9 +330,9 @@ Also known as JoyMaps.
 JoyMaps are to controller event what KeyMaps are to keyboard events. They have many of the same properties to KeyMaps, but use a dictionary of a key and value for the binding.
 
 ```python
-import event_handler
+import simple_events
 
-CONTROLLER = event_handler.getKeyListener("controller_stuff")
+CONTROLLER = simple_events.getKeyListener("controller_stuff")
 
 @CONTROLLER.bind("example", {"button": 0})
 def test_func(_):
@@ -357,7 +357,7 @@ There are two options:
 1. Notify All
 
 ```python
-import event_handler
+import simple_events
 
 import pygame
 
@@ -366,8 +366,8 @@ import pygame
 while game_is_running:
     # Frame rate handling
     for event in pygame.event.get():
-        event_handler.notifyEventManagers(event)
-        event_handler.notifyKeyListeners(event)
+        simple_events.notifyEventManagers(event)
+        simple_events.notifyKeyListeners(event)
     # Game Loop stuff
 
 ```
@@ -377,15 +377,15 @@ This ensures that every manager is being fed events as they happen.
 2. Direct Notification
 
 ```python
-import event_handler
+import simple_events
 
 import pygame
 
 # pygame setup and initialization
 
-MANAGER = event_handler.getEventManager("Example") # Remember, the handle needs to be the same as wherever events are assigned
-MANAGER2 = event_handler.getEventManager("Example2")
-KEYBINDS = event_handler.getKeyListener("Example")
+MANAGER = simple_events.getEventManager("Example") # Remember, the handle needs to be the same as wherever events are assigned
+MANAGER2 = simple_events.getEventManager("Example2")
+KEYBINDS = simple_events.getKeyListener("Example")
 
 while game_is_running:
     # Frame rate handling
