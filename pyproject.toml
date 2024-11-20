@@ -6,8 +6,8 @@ build-backend = "setuptools.build_meta"
 enabled = true
 
 [project]
-name = "event_handler"
-dynamic = ["version"]
+name = "simple_events"
+version = "1.0.0"
 authors = [
     { name="BetterBuiltFool", email="betterbuiltfool@gmail.com"}
 ]
