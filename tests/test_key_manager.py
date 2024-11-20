@@ -25,6 +25,7 @@ from src.simple_events.joy_map import (  # noqa: E402
 )
 
 from src.simple_events.file_parser import (  # noqa: E402
+    _get_parser_from_path,
     JSONParser,
 )
 
@@ -298,6 +299,19 @@ class TestJoyMap(unittest.TestCase):
         packed_dict = self.joymap.pack_binds()
 
         self.assertEqual(test_dict, packed_dict)
+
+
+class TestFileParser(unittest.TestCase):
+
+    def test_json(self):
+        path = pathlib.PurePath("sample.json")
+
+        self.assertIs(_get_parser_from_path(path), JSONParser)
+
+        new_path = pathlib.PurePath("unsupported.py")
+
+        with self.assertRaises(ValueError):
+            _get_parser_from_path(new_path)
 
 
 class TestJSONParser(unittest.TestCase):
