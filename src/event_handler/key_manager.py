@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 import itertools
 import logging
 from pathlib import Path
-from typing import Any, Callable, Optional, overload, TextIO, Type
+from typing import Any, Callable, Optional, overload, Type
 
 # import file_parser
+from .file_parser import FileParser, _get_parser_from_path
 from .joy_map import JoyMap
 from .key_map import KeyBind, KeyMap
 from .base_manager import BaseManager, _CallableSets
@@ -14,25 +14,6 @@ from .base_manager import BaseManager, _CallableSets
 import pygame
 
 logger: logging.Logger = logging.getLogger(__name__)
-
-
-class FileParser(ABC):
-
-    @staticmethod
-    @abstractmethod
-    def load(in_file: TextIO) -> tuple[KeyMap, JoyMap]: ...
-
-    @staticmethod
-    @abstractmethod
-    def save(key_map: KeyMap, joy_map: JoyMap, out_file: TextIO) -> None: ...
-
-    @staticmethod
-    @abstractmethod
-    def _unpack_keys(maps: dict) -> dict: ...
-
-    @staticmethod
-    @abstractmethod
-    def _unpack_joystick(maps: dict) -> dict: ...
 
 
 class KeyListener(BaseManager):
@@ -524,7 +505,9 @@ class KeyListener(BaseManager):
         )
 
     @classmethod
-    def load_from_file(cls, file_path: Path, parser: Type[FileParser]) -> None:
+    def load_from_file(
+        cls, file_path: Path, parser: Optional[Type[FileParser]] = None
+    ) -> None:
         """
         Pulls the file from the file path, and uses the supplied parser to convert the
         file into a KeyMap, which is merged with the current KeyMap.
@@ -532,24 +515,37 @@ class KeyListener(BaseManager):
         Binds in the current KeyMap that don't exist in the loaded KeyMap do not change,
         all others are updated to reflect the loaded binds
 
-        :param file_path: path to the file to be loaded
-        :param parser: Parser to be used to decode the file.
-        Use one that matches the data structure
+        If a FileParser subclass is not included, it will be inferred from the file
+        type. If the file type is not recognized/supported, it will generate an error.
+
+        :param file_path: Path to the file to be loaded
+        :param parser: Parser to be used to decode the file, defaults to None
+        :raises ValueError: Raised if not parser is given, and the file type is not
+        supported.
         """
+        parser = parser or _get_parser_from_path(file_path)
         with open(file_path, "r") as file:
             key_binds, joy_binds = parser.load(file)
             cls.key_map.merge(key_binds)
             cls.joy_map.merge(joy_binds)
 
     @classmethod
-    def save_to_file(cls, file_path: Path, parser: Type[FileParser]) -> None:
+    def save_to_file(
+        cls, file_path: Path, parser: Optional[Type[FileParser]] = None
+    ) -> None:
         """
-        Saves the current KeyMap to a file in the requested location.
-        Expects the file name and extension to be included.
+        Saves the current KeyMap and JoyMap to a file in the requested location.
+        Requires a path object that includes the file type.
+
+        If a FileParser subclass is not included, it will be inferred from the file
+        type. If the file type is not recognized/supported, it will generate an error.
 
         :param file_path: Path to the file being saved to
-        :param parser: Parser used to encode the file.
+        :param parser: Parser used to encode the file, defaults to None
+        :raises ValueError: Raised if not parser is given, and the file type is not
+        supported.
         """
+        parser = parser or _get_parser_from_path(file_path)
         with open(file_path, "w") as file:
             parser.save(cls.key_map, cls.joy_map, file)
 
