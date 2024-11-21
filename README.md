@@ -113,7 +113,7 @@ Simple events is written in pure python, with no system dependencies, and should
 Simple events can be installed from the [PyPI][pypi-url] using [pip][pip-url]:
 
 ```sh
-pip install simple_events
+pip install pygame_simple_events
 ```
 
 and can be imported for use with:
