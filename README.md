@@ -106,11 +106,11 @@ It also features a keybind manager, which similarly can assign functions to rema
 <!-- GETTING STARTED -->
 ## Getting Started
 
-Event handler is written in pure python, with no system dependencies, and should be OS-agnostic.
+Simple events is written in pure python, with no system dependencies, and should be OS-agnostic.
 
 ### Installation
 
-Event handler can be installed from the [PyPI][pypi-url] using [pip][pip-url]:
+Simple events can be installed from the [PyPI][pypi-url] using [pip][pip-url]:
 
 ```sh
 pip install simple_events
@@ -121,7 +121,7 @@ and can be imported for use with:
 import simple_events
 ```
 
-Event handler also require Pygame Community edition to be installed.
+Simple events also require Pygame Community edition to be installed.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -530,5 +530,5 @@ Project Link: [https://github.com/BetterBuiltFool/simple_events](https://github.
 [Bootstrap-url]: https://getbootstrap.com
 [JQuery.com]: https://img.shields.io/badge/jQuery-0769AD?style=for-the-badge&logo=jquery&logoColor=white
 [JQuery-url]: https://jquery.com 
-[pypi-url]: https://pypi.org/project/project_name/
+[pypi-url]: https://pypi.org/project/simple_events
 [pip-url]: https://pip.pypa.io/en/stable/
