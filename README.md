@@ -530,5 +530,5 @@ Project Link: [https://github.com/BetterBuiltFool/simple_events](https://github.
 [Bootstrap-url]: https://getbootstrap.com
 [JQuery.com]: https://img.shields.io/badge/jQuery-0769AD?style=for-the-badge&logo=jquery&logoColor=white
 [JQuery-url]: https://jquery.com 
-[pypi-url]: https://pypi.org/project/simple_events
+[pypi-url]: https://pypi.org/project/pygame_simple_events
 [pip-url]: https://pip.pypa.io/en/stable/
