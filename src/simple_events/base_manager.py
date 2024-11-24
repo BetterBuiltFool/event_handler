@@ -248,7 +248,7 @@ class BaseManager(ABC):
         return wrapper
 
 
-def basicConfig(*args, **kwds) -> None:
+def managerBasicConfig(*args, **kwds) -> None:
     if kwds.get("is_async", False):
         BaseManager.thread_system = AsyncThreadSystem()
     else:
