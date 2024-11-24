@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+import asyncio
 from dataclasses import dataclass, field
 import functools
 import threading
@@ -26,7 +27,25 @@ class _CallableSets:
     )
 
 
+class _BaseThreadSystem(ABC):
+
+    @abstractmethod
+    def start_thread(self, callable: Callable, *args) -> None: ...
+
+
+class DefaultThreadSystem(_BaseThreadSystem):
+
+    def start_thread(self, callable, *args):
+        threading.Thread(target=callable, args=args).start()
+
+
+class AsyncThreadSystem(_BaseThreadSystem):
+    def start_thread(self, callable, *args):
+        asyncio.ensure_future(callable(*args))
+
+
 class BaseManager(ABC):
+    thread_system: _BaseThreadSystem = DefaultThreadSystem()
 
     def __init__(self, handle: str) -> None:
         self.handle: str = handle
@@ -34,6 +53,9 @@ class BaseManager(ABC):
         self._class_listener_instances: dict[Type[object], WeakSet[object]] = {}
         # Assigned object as key, associated methods as values
         self._assigned_classes: dict[Type[object], list[Callable]] = {}
+
+    # def __init_subclass__(cls) -> None:
+    #     cls.thread_system = DefaultThreadSystem()
 
     def sequential(self, func: Callable) -> Callable:
         """
@@ -120,11 +142,13 @@ class BaseManager(ABC):
 
     def _handle_concurrent(self, event: pygame.Event, callables: _CallableSets) -> None:
         for function in callables.concurrent_functions:
-            threading.Thread(target=function, args=(event,)).start()
+            self.thread_system.start_thread(function, event)
+            # threading.Thread(target=function, args=(event,)).start()
         for method, cls in callables.concurrent_methods:
             instances = self._class_listener_instances.get(cls, WeakSet())
             for instance in instances:
-                threading.Thread(target=method, args=(instance, event)).start()
+                self.thread_system.start_thread(method, instance, event)
+                # threading.Thread(target=method, args=(instance, event)).start()
 
     def _handle_sequential(self, event: pygame.Event, callables: _CallableSets) -> None:
         for function in callables.sequential_functions:
@@ -222,3 +246,10 @@ class BaseManager(ABC):
             return init(*args, **kwds)
 
         return wrapper
+
+
+def basicConfig(*args, **kwds) -> None:
+    if kwds.get("is_async", False):
+        BaseManager.thread_system = AsyncThreadSystem()
+    else:
+        BaseManager.thread_system = DefaultThreadSystem()
