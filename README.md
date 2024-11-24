@@ -79,6 +79,7 @@
         <li><a href="#controller-maps">Controller Maps</a></li>
         <li><a href="#passing-events-to-the-managers">Passing Events to the Managers</a></li>
         <li><a href="#concurrency">Concurrency</a></li>
+        <li><a href="#async-aware-concurrency">Async-Aware Concurrency</a></li>
       </ul>
     <li><a href="#roadmap">Roadmap</a></li>
     <!--<li><a href="#contributing">Contributing</a></li>-->
@@ -131,6 +132,7 @@ Simple events also require Pygame Community edition to be installed.
 ## Usage
 
 EventManagers and KeyListeners are instantiated like loggers from the built-in python logging library.
+If you run basicConfig, it should be done in your main entry point, such as main.py or equivalent.
 
 <!--
 _For more examples, please refer to the [Documentation](https://example.com)_
@@ -211,7 +213,7 @@ class TestClass:
         # Things
 ```
 
-Methods cannot be late registered, unlike regular callables. Classes can be late registered, but the event manager will not pick up on existing instances.
+Methods cannot be late registered, unlike regular functions. Classes can be late registered, but the event manager will not pick up on existing instances.
 
 
 For more information on Pygame events, including a list of event type with descriptions, see [here](https://www.pygame.org/docs/ref/event.html)
@@ -271,6 +273,8 @@ def func2(_):
 ```
 
 In this example, pressing the "o" key will activate both functions, even though func2 asks for Ctrl+Z.
+
+If you are registering binds in multiple files, it may not always be obvious where your binds are being first called. You'll need to follow the chain of imports to figure it out. Alternatively, you can load a keymap file, which will guarantee control over your bindings.
 
 Key Listeners also work with classes and methods, following similar syntax as the Event Manager.
 
@@ -415,6 +419,37 @@ Optionally, you can use
 @KEYLISTENER.sequential
 ```
 to mark a function as sequential. Sequential functions and methods will called after the concurrent functions and methods, and will run one after the other. They lose out on being easily blockable, but reduce the risk of forming race conditions, especially if not sharing resources with any concurrent functions.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+### Async-Aware Concurrency
+
+when using an async-aware gameplay loop, such as with tools such as [pygbag](https://pypi.org/project/pygbag/), you'll need to change up the format of your concurrent functions and methods, as online pygame games made using pygbag do not work with traditional threads. Instead, you'll need to use asyncio.
+
+With simple events, the transition is simple. Go from this:
+```python
+@EVENTS.register(pygame.MOUSEBUTTONUP)
+def mouse_click(event: pygame.Event) -> None:
+    # Do Something
+    time.sleep(1)
+    # Do Something Else
+```
+
+To this:
+```python
+@EVENTS.register(pygame.MOUSEBUTTONUP)
+async def mouse_click(event: pygame.Event) -> None:
+    # Do Something
+    await asyncio.sleep(1)
+    # Do Something Else
+```
+
+You will also need to run the simple_events.basicConfig function at your main entry point, before you run your main coroutine.
+
+```python
+simple_events.basicConfig(is_async=True)
+asyncio.run(main())
+```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
