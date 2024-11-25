@@ -507,7 +507,7 @@ class KeyListener(BaseManager):
 
     @classmethod
     def load_from_file(
-        cls, file_path: PathLike, parser: Optional[Type[FileParser]] = None
+        cls, file_path: PathLike | str, parser: Optional[Type[FileParser]] = None
     ) -> None:
         """
         Pulls the file from the file path, and uses the supplied parser to convert the
@@ -534,7 +534,7 @@ class KeyListener(BaseManager):
 
     @classmethod
     def save_to_file(
-        cls, file_path: PathLike, parser: Optional[Type[FileParser]] = None
+        cls, file_path: PathLike | str, parser: Optional[Type[FileParser]] = None
     ) -> None:
         """
         Saves the current KeyMap and JoyMap to a file in the requested location.
