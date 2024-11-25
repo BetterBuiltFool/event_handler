@@ -41,7 +41,7 @@ class DefaultThreadSystem(_BaseThreadSystem):
 
 class AsyncThreadSystem(_BaseThreadSystem):
     def start_thread(self, callable, *args):
-        asyncio.ensure_future(callable(*args))
+        asyncio.create_task(callable(*args))
 
 
 class BaseManager(ABC):
