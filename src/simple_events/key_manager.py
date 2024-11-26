@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import itertools
 import logging
+from os import PathLike
 from pathlib import Path
 from typing import Any, Callable, Optional, overload, Type
 
@@ -506,7 +507,7 @@ class KeyListener(BaseManager):
 
     @classmethod
     def load_from_file(
-        cls, file_path: Path, parser: Optional[Type[FileParser]] = None
+        cls, file_path: PathLike | str, parser: Optional[Type[FileParser]] = None
     ) -> None:
         """
         Pulls the file from the file path, and uses the supplied parser to convert the
@@ -523,6 +524,8 @@ class KeyListener(BaseManager):
         :raises ValueError: Raised if not parser is given, and the file type is not
         supported.
         """
+        if type(file_path) is not Path:
+            file_path = Path(file_path)
         parser = parser or _get_parser_from_path(file_path)
         with open(file_path, "r") as file:
             key_binds, joy_binds = parser.load(file)
@@ -531,7 +534,7 @@ class KeyListener(BaseManager):
 
     @classmethod
     def save_to_file(
-        cls, file_path: Path, parser: Optional[Type[FileParser]] = None
+        cls, file_path: PathLike | str, parser: Optional[Type[FileParser]] = None
     ) -> None:
         """
         Saves the current KeyMap and JoyMap to a file in the requested location.
@@ -545,6 +548,8 @@ class KeyListener(BaseManager):
         :raises ValueError: Raised if not parser is given, and the file type is not
         supported.
         """
+        if type(file_path) is not Path:
+            file_path = Path(file_path)
         parser = parser or _get_parser_from_path(file_path)
         with open(file_path, "w") as file:
             parser.save(cls.key_map, cls.joy_map, file)

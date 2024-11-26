@@ -25,6 +25,7 @@ share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+*-pygbag.???
 MANIFEST
 
 # PyInstaller
@@ -162,3 +163,4 @@ cython_debug/
 
 event_handler.code-workspace
 misc_testing.py
+main.py

@@ -79,6 +79,7 @@
         <li><a href="#controller-maps">Controller Maps</a></li>
         <li><a href="#passing-events-to-the-managers">Passing Events to the Managers</a></li>
         <li><a href="#concurrency">Concurrency</a></li>
+        <li><a href="#async-aware-concurrency">Async-Aware Concurrency</a></li>
       </ul>
     <li><a href="#roadmap">Roadmap</a></li>
     <!--<li><a href="#contributing">Contributing</a></li>-->
@@ -99,6 +100,8 @@
 
 Simple Events is a simple system that uses decorator syntax to register functions to Pygame events, allowing those function to be fired whenever the assigned event occurs.
 It also features a keybind manager, which similarly can assign functions to remappable keybinds and controller binds.
+
+Simple Events also offers runtime-configurable compatibility with async-aware runtimes, such as pygbag.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -131,6 +134,7 @@ Simple events also require Pygame Community edition to be installed.
 ## Usage
 
 EventManagers and KeyListeners are instantiated like loggers from the built-in python logging library.
+If you run basicConfig, it should be done in your main entry point, such as main.py or equivalent. It needs to be run before your main game loop.
 
 <!--
 _For more examples, please refer to the [Documentation](https://example.com)_
@@ -211,7 +215,7 @@ class TestClass:
         # Things
 ```
 
-Methods cannot be late registered, unlike regular callables. Classes can be late registered, but the event manager will not pick up on existing instances.
+Methods cannot be late registered, unlike regular functions. Classes can be late registered, but the event manager will not pick up on existing instances.
 
 
 For more information on Pygame events, including a list of event type with descriptions, see [here](https://www.pygame.org/docs/ref/event.html)
@@ -228,7 +232,7 @@ KEYBINDS = simple_events.getKeyListener("Example")
 
 Key Listeners are seperate from event managers and can share handles without conflict.
 
-Key binds are slightly more involved. They require a bind name, and can accept an optional default key as well as mod keys. They have the same function signature requirements as regular event binds.
+Key binds are slightly more involved to set up than regular events. They require a bind name, and can accept an optional default key as well as mod keys. They have the same function signature requirements as regular event binds.
 
 ```python
 @KEYBINDS.bind("example_name", pygame.K_p, pygame.KMOD_SHIFT)
@@ -254,7 +258,7 @@ def some_function(_):
     # Something
     # When
     # Shift+P
-    # Is pressed
+    # Is released
 ```
 
 
@@ -271,6 +275,8 @@ def func2(_):
 ```
 
 In this example, pressing the "o" key will activate both functions, even though func2 asks for Ctrl+Z.
+
+If you are registering binds in multiple files, it may not always be obvious where your binds are being first called. You'll need to follow the chain of imports to figure it out. Alternatively, you can load a keymap file, which will guarantee control over your bindings. A loaded keymap has the highest priority for specifying binds.
 
 Key Listeners also work with classes and methods, following similar syntax as the Event Manager.
 
@@ -297,7 +303,7 @@ KEYBINDS.rebind("example_name", pygame.K_m, pygame.KMOD_ALT)
 
 This changes the key for all functions bound to "example_name", which now get called when Alt+M is pressed instead of Shift+P.
 
-Key Maps and Joy Maps can also be saved and loaded from file. This requires a path to the desired file location, including the file name and extension. If the file type is supported, it will be intuited from the file extension. Unsupported file types can have a File Parser class passed to force a specific encoding.
+Key Maps and Joy Maps can also be saved and loaded from file. This requires a path to the desired file location, including the file name and extension. It supports almost any kind of path, including strings, and pathlib paths. If the file type is supported, it will be intuited from the file extension. Unsupported file types can have a File Parser class passed to force a specific encoding.
 
 ```python
 import simple_events
@@ -400,7 +406,7 @@ while game_is_running:
 The developer must track the managers and is responsible for feeding them the events. This allows greater control over if and when a given manager is activated.
 For example, it may be desirable to have a manager that handles menu functions, and another gameplay functions. This way, the game loop can test for game state, and run only the menu functions when in menu, and only gameplay functions while playing.
 
-Additionally, event managers and key listeners support calling _only_ sequential and _only_ concurrent functions and methods, if desired. This may be done using the \[manager\].notify_sequential(event) and \[manager\].notify_concurrent(event) methods, respectively. It should be noted that calling both the general and specific notifies on the same frame will call those functions twice.
+Additionally, event managers and key listeners support calling _only_ sequential and _only_ concurrent functions and methods, if desired. This may be done using the \[manager variable\].notify_sequential(event) and \[manager variable\].notify_concurrent(event) methods, respectively. It should be noted that calling both the general and specific notifies on the same frame will call those functions twice.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -415,6 +421,45 @@ Optionally, you can use
 @KEYLISTENER.sequential
 ```
 to mark a function as sequential. Sequential functions and methods will called after the concurrent functions and methods, and will run one after the other. They lose out on being easily blockable, but reduce the risk of forming race conditions, especially if not sharing resources with any concurrent functions.
+
+The sequential tag is applied below the register or bind decorator.
+```python
+@KEYLISTENER.bind("test_bind", pygame.K_Space)
+@KEYLISTENER.sequential
+def test_func(event: pygame.Event) -> None:
+    # Some stuff
+```
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+### Async-Aware Concurrency
+
+When using an async-aware gameplay loop, such as with tools such as [pygbag](https://pypi.org/project/pygbag/), you'll need to change up the format of your concurrent functions and methods, as online pygame games made using pygbag do not work with traditional threads. Instead, you'll need to use asyncio.
+
+With Simple Events, the transition is simple. Go from this:
+```python
+@EVENTS.register(pygame.MOUSEBUTTONUP)
+def mouse_click(event: pygame.Event) -> None:
+    # Do Something
+    time.sleep(1)
+    # Do Something Else
+```
+
+To this:
+```python
+@EVENTS.register(pygame.MOUSEBUTTONUP)
+async def mouse_click(event: pygame.Event) -> None:
+    # Do Something
+    await asyncio.sleep(1)
+    # Do Something Else
+```
+
+You will also need to run the simple_events.basicConfig function at your main entry point, before you run your main coroutine.
+
+```python
+simple_events.basicConfig(is_async=True)
+asyncio.run(main())
+```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
