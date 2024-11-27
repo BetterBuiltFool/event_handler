@@ -218,7 +218,7 @@ class TestClass:
 Methods cannot be late registered, unlike regular functions. Classes can be late registered, but the event manager will not pick up on existing instances.
 
 
-For more information on Pygame events, including a list of event type with descriptions, see [here](https://www.pygame.org/docs/ref/event.html)
+For more information on Pygame events, including a list of event type with descriptions, see [here](https://pyga.me/docs/ref/event.html)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -280,7 +280,7 @@ If you are registering binds in multiple files, it may not always be obvious whe
 
 Key Listeners also work with classes and methods, following similar syntax as the Event Manager.
 
-For more information on pygame and key handling, including a list of key names, see [here](https://www.pygame.org/docs/ref/key.html)
+For more information on pygame and key handling, including a list of key names, see [here](https://pyga.me/docs/ref/key.html)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -349,7 +349,7 @@ In this case, it will look for the "button" attribute of a Joystick event, and w
 
 Instance-specific attributes like "instance_id" and "value" are disregarded by the Joy Map. 
 
-For more information on pygame and joystick/controller behavior, including examples of button maps, see [here](https://www.pygame.org/docs/ref/joystick.html)
+For more information on pygame and joystick/controller behavior, including examples of button maps, see [here](https://pyga.me/docs/ref/joystick.html)
 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
