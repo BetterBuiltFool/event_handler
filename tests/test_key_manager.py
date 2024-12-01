@@ -3,7 +3,7 @@ import json
 import pathlib
 import sys
 import threading
-from typing import Callable, cast, Type
+from typing import Callable, cast
 import unittest
 
 import pygame
@@ -443,9 +443,31 @@ class TestKeyListener(unittest.TestCase):
 
         self.key_listener.bind("test_bind2")(test_func)
 
-        self.assertIn("test_bind0", self.key_listener._key_hooks.keys())
-        self.assertIn("test_bind1", self.key_listener._key_hooks.keys())
-        self.assertIn("test_bind2", self.key_listener._key_hooks.keys())
+        found_bind0 = False
+        found_bind1 = False
+        found_bind2 = False
+
+        for bind_name, _, _ in self.key_listener._key_hooks.keys():
+            match bind_name:
+                case "test_bind0":
+                    found_bind0 = True
+                case "test_bind1":
+                    found_bind1 = True
+                case "test_bind2":
+                    found_bind2 = True
+
+        self.assertTrue(
+            found_bind0,
+            msg=f"'test_bind0' not found in {self.key_listener._key_hooks.keys()}",
+        )
+        self.assertTrue(
+            found_bind1,
+            msg=f"'test_bind1' not found in {self.key_listener._key_hooks.keys()}",
+        )
+        self.assertTrue(
+            found_bind2,
+            msg=f"'test_bind2' not found in {self.key_listener._key_hooks.keys()}",
+        )
 
         callables = self.key_listener._get_callables(
             pygame.Event(pygame.KEYDOWN, key=pygame.K_0, mod=pygame.KMOD_ALT)
@@ -459,9 +481,9 @@ class TestKeyListener(unittest.TestCase):
 
         self.assertIn(test_func, callables2.concurrent_functions)
 
-        bind2_dict = self.key_listener._key_hooks.get("test_bind2", {})
-        bind2_event_dict = bind2_dict.get(True, {})
-        bind2_list = bind2_event_dict.get(pygame.KEYDOWN, [])
+        bind2_list = self.key_listener._key_hooks.get(
+            ("test_bind2", True, pygame.KEYDOWN), []
+        )
         self.assertIn(test_func, bind2_list)
 
     def test_bind_sequential(self) -> None:
@@ -476,9 +498,31 @@ class TestKeyListener(unittest.TestCase):
 
         self.key_listener.bind("test_bind2")(test_func)
 
-        self.assertIn("test_bind0", self.key_listener._key_hooks.keys())
-        self.assertIn("test_bind1", self.key_listener._key_hooks.keys())
-        self.assertIn("test_bind2", self.key_listener._key_hooks.keys())
+        found_bind0 = False
+        found_bind1 = False
+        found_bind2 = False
+
+        for bind_name, _, _ in self.key_listener._key_hooks.keys():
+            match bind_name:
+                case "test_bind0":
+                    found_bind0 = True
+                case "test_bind1":
+                    found_bind1 = True
+                case "test_bind2":
+                    found_bind2 = True
+
+        self.assertTrue(
+            found_bind0,
+            msg=f"'test_bind0' not found in {self.key_listener._key_hooks.keys()}",
+        )
+        self.assertTrue(
+            found_bind1,
+            msg=f"'test_bind1' not found in {self.key_listener._key_hooks.keys()}",
+        )
+        self.assertTrue(
+            found_bind2,
+            msg=f"'test_bind2' not found in {self.key_listener._key_hooks.keys()}",
+        )
 
         callables = self.key_listener._get_callables(
             pygame.Event(pygame.KEYDOWN, key=pygame.K_0, mod=pygame.KMOD_ALT)
@@ -492,9 +536,9 @@ class TestKeyListener(unittest.TestCase):
 
         self.assertIn(test_func, callables2.sequential_functions)
 
-        bind2_dict = self.key_listener._key_hooks.get("test_bind2", {})
-        bind2_event_dict = bind2_dict.get(False, {})
-        bind2_list = bind2_event_dict.get(pygame.KEYDOWN, [])
+        bind2_list = self.key_listener._key_hooks.get(
+            ("test_bind2", False, pygame.KEYDOWN), []
+        )
         self.assertIn(test_func, bind2_list)
 
     def test_unbind(self) -> None:
@@ -510,25 +554,25 @@ class TestKeyListener(unittest.TestCase):
 
         self.key_listener.unbind(test_func, "test_bind0")
 
-        bind0_dict = self.key_listener._key_hooks.get("test_bind0")
-        assert bind0_dict
-        bind0_list = bind0_dict.get(True, {}).get(pygame.KEYDOWN)
+        bind0_list = self.key_listener._key_hooks.get(
+            ("test_bind0", True, pygame.KEYDOWN), []
+        )
         self.assertNotIn(
             test_func,
             cast(list[Callable], bind0_list),
         )
 
-        bind1_dict = self.key_listener._key_hooks.get("test_bind1")
-        assert bind1_dict
-        bind1_list = bind1_dict.get(True, {}).get(pygame.KEYDOWN)
+        bind1_list = self.key_listener._key_hooks.get(
+            ("test_bind1", True, pygame.KEYDOWN), []
+        )
         self.assertIn(
             test_func,
             cast(list[Callable], bind1_list),
         )
 
-        bind2_dict = self.key_listener._key_hooks.get("test_bind2")
-        assert bind2_dict
-        bind2_list = bind2_dict.get(True, {}).get(pygame.KEYDOWN)
+        bind2_list = self.key_listener._key_hooks.get(
+            ("test_bind2", True, pygame.KEYDOWN), []
+        )
         self.assertIn(
             test_func,
             cast(list[Callable], bind2_list),
@@ -551,11 +595,16 @@ class TestKeyListener(unittest.TestCase):
         self.key_listener.clear_bind("test_bind0")
 
         # No assertEmpty, so this will have to do.
-        self.assertFalse(self.key_listener._key_hooks.get("test_bind0"))
-        self.assertIsNotNone(self.key_listener._key_hooks.get("test_bind0"))
-        bind1_dict = self.key_listener._key_hooks.get("test_bind1")
-        assert bind1_dict
-        bind1_list = bind1_dict.get(True, {}).get(pygame.KEYDOWN)
+
+        bind0_list = self.key_listener._key_hooks.get(
+            ("test_bind0", True, pygame.KEYDOWN), []
+        )
+        self.assertFalse(bind0_list)
+        self.assertIsNotNone(bind0_list)
+
+        bind1_list = self.key_listener._key_hooks.get(
+            ("test_bind1", True, pygame.KEYDOWN), []
+        )
         self.assertIn(
             test_func,
             cast(list[Callable], bind1_list),
@@ -563,7 +612,17 @@ class TestKeyListener(unittest.TestCase):
 
         self.key_listener.clear_bind("test_bind0", True)
 
-        self.assertIsNone(self.key_listener._key_hooks.get("test_bind0"))
+        bind0_list = self.key_listener._key_hooks.get(
+            ("test_bind0", True, pygame.KEYDOWN), []
+        )
+
+        binds = [
+            True
+            for (bind_name, _, _) in self.key_listener._key_hooks
+            if bind_name == "test_bind0"
+        ]
+
+        self.assertFalse(any(binds))
 
     def test_bind_method(self) -> None:
 
@@ -604,14 +663,9 @@ class TestKeyListener(unittest.TestCase):
                 self.key_listener._class_listener_instances.get(TestClass),
             ),
         )
-        bound_listeners: dict[int, list[tuple[Callable, Type[object]]]] = (
-            self.key_listener._class_listeners.get("test_bind", {}).get(True, {})
+        listeners = self.key_listener._class_listeners.get(
+            ("test_bind", True, pygame.KEYDOWN), []
         )
-        self.assertTrue(bound_listeners)
-        listeners: list[tuple[Callable, Type[object]]] = bound_listeners.get(
-            pygame.KEYDOWN, []
-        )
-        self.assertTrue(listeners)
         listener_pair = (TestClass.test_method, TestClass)
         # Verify method/object pair are associated with the event
         self.assertIn(listener_pair, listeners)
@@ -636,12 +690,9 @@ class TestKeyListener(unittest.TestCase):
         self.assertNotIn(
             TestClass.test_method, self.key_listener._class_listener_binds.keys()
         )
-        bound_listeners: dict[int, list[tuple[Callable, Type[object]]]] = (
-            self.key_listener._class_listeners.get("test_bind", {}).get(True, {})
-        )
-        self.assertTrue(bound_listeners)
-        listeners: list[tuple[Callable, Type[object]]] = bound_listeners.get(
-            pygame.KEYDOWN, []
+
+        listeners = self.key_listener._class_listeners.get(
+            ("test_bind", True, pygame.KEYDOWN), []
         )
         self.assertTrue(listeners)
         listener_pair = (TestClass.test_method, TestClass)
@@ -666,12 +717,9 @@ class TestKeyListener(unittest.TestCase):
             TestClass.test_method, self.key_listener._class_listener_binds.keys()
         )
         self.assertNotIn(TestClass, self.key_listener._class_listener_instances.keys())
-        bound_listeners: dict[int, list[tuple[Callable, Type[object]]]] = (
-            self.key_listener._class_listeners.get("test_bind", {}).get(True, {})
-        )
-        self.assertTrue(bound_listeners)
-        listeners: list[tuple[Callable, Type[object]]] = bound_listeners.get(
-            pygame.KEYDOWN, []
+
+        listeners = self.key_listener._key_hooks.get(
+            ("test_bind", True, pygame.KEYDOWN), []
         )
         listener_pair = (TestClass.test_method, TestClass)
         # Verify method/object pair are associated with the event

@@ -18,12 +18,12 @@ class EventManager(BaseManager):
 
         # --------Basic function assignment--------
         # Pygame event as key, list of functions as values
-        self._listeners: dict[int, dict[bool, list[Callable]]] = {}
+        self._listeners: dict[tuple[int, bool], list[Callable]] = {}
 
         # --------Class method assignment--------
         # Pygame event key, method and affected object as values
         self._class_listeners: dict[
-            int, dict[bool, list[tuple[Callable, Type[object]]]]
+            tuple[int, bool], list[tuple[Callable, Type[object]]]
         ] = {}
         # Inversion of _class_listeners. Method as key, event id as values
         self._class_listener_events: dict[Callable, list[int]] = {}
@@ -40,9 +40,8 @@ class EventManager(BaseManager):
 
         def decorator(listener: Callable) -> Callable:
             is_concurrent = not hasattr(listener, "_runs_sequential")
-            event_dict = self._listeners.setdefault(event_type, {})
-            concurrency_list = event_dict.setdefault(is_concurrent, [])
-            concurrency_list.append(listener)
+            event_list = self._listeners.setdefault((event_type, is_concurrent), [])
+            event_list.append(listener)
             return listener
 
         return decorator
@@ -56,33 +55,11 @@ class EventManager(BaseManager):
         :param event_type: Pygame event type to which the function is to be
         removed, defaults to None
         """
-        call_list: list[Callable] | None
-        if event_type is not None:
-            event_dict = self._listeners.get(event_type)
-            if not event_dict:
-                logger.warning(
-                    "No functions are registered to "
-                    f"{pygame.event.event_name(event_type)}"
-                )
-                return
-            found = False
-            for call_list in event_dict.values():
-                if func not in call_list:
-                    continue
-                found = True
-                call_list.remove(func)
-            if not found:
-                logger.warning(
-                    f"Function '{func.__name__}' is not bound to "
-                    f"{pygame.event.event_name(event_type)}"
-                )
-            return
-        for event_dict in self._listeners.values():
-            if not event_dict:
+        for (event, _), call_list in self._listeners.items():
+            if event_type is not None and event != event_type:
                 continue
-            for call_list in event_dict.values():
-                if func in call_list:
-                    call_list.remove(func)
+            if func in call_list:
+                call_list.remove(func)
 
     def _capture_method(self, cls, method, tag_data):
         """
@@ -97,9 +74,10 @@ class EventManager(BaseManager):
         event_type = tag_data[0]  # Only piece of data
 
         # -----Add to Class Listeners-----
-        event_dict = self._class_listeners.setdefault(event_type, {})
-        concurrency_list = event_dict.setdefault(is_concurrent, [])
-        concurrency_list.append((method, cls))
+        class_listeners = self._class_listeners.setdefault(
+            (event_type, is_concurrent), []
+        )
+        class_listeners.append((method, cls))
 
         # -----Add to Class Listener Events-----
         self._class_listener_events.setdefault(method, []).append(event_type)
@@ -145,18 +123,14 @@ class EventManager(BaseManager):
 
         :param method: Method whose registration is being revoked.
         """
-        for event_type in self._class_listener_events.get(method, []):
-            event_dict = self._class_listeners.get(event_type, {})
-            for concurrency, listener_sets in event_dict.items():
-                # Retain only the listeners that are not the method
-                listener_sets = list(
-                    filter(
-                        lambda listener_set: method is not listener_set[0],
-                        listener_sets,
-                    )
+        for (event_type, is_concurrent), listener_set in self._class_listeners.items():
+            listener_set = list(
+                filter(
+                    lambda call_list: method is not call_list[0],
+                    listener_set,
                 )
-                event_dict.update({concurrency: listener_sets})
-            self._class_listeners.update({event_type: event_dict})
+            )
+            self._class_listeners.update({(event_type, is_concurrent): listener_set})
         self._class_listener_events.pop(method)
 
     def purge_event(self, event_type: int) -> None:
@@ -165,18 +139,30 @@ class EventManager(BaseManager):
 
         :param event_type: Pygame event type
         """
-        self._listeners.pop(event_type, None)
-        self._class_listeners.pop(event_type, None)
-        # This really simplified things, no?
+        to_remove: list[tuple[int, bool]] = []
+        for event, is_concurrent in self._listeners.keys():
+            if event == event_type:
+                to_remove.append((event, is_concurrent))
+        for key in to_remove:
+            # Not including default value since the keys came directly from the
+            # dictionary and shouldn't be absent
+            # If this errors, it suggests another process is deleting the key first,
+            # which could be causing other issues.
+            self._listeners.pop(key, None)
+
+        to_remove = []
+        for event, is_concurrent in self._class_listeners.keys():
+            if event == event_type:
+                to_remove.append((event, is_concurrent))
+        for key in to_remove:
+            self._class_listeners.pop(key, None)
 
     def _get_callables(self, event) -> _CallableSets:
-        functions = self._listeners.get(event.type, {})
-        methods = self._class_listeners.get(event.type, {})
         return _CallableSets(
-            concurrent_functions=functions.get(True, []),
-            sequential_functions=functions.get(False, []),
-            concurrent_methods=methods.get(True, []),
-            sequential_methods=methods.get(False, []),
+            concurrent_functions=self._listeners.get((event.type, True), []),
+            sequential_functions=self._listeners.get((event.type, False), []),
+            concurrent_methods=self._class_listeners.get((event.type, True), []),
+            sequential_methods=self._class_listeners.get((event.type, False), []),
         )
 
 

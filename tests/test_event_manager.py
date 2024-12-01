@@ -60,8 +60,7 @@ class TestEventManager(unittest.TestCase):
         def test_func() -> None:
             pass
 
-        event_dict = self.event_manager._listeners.get(self.test_event, {})
-        listeners = event_dict.get(True)
+        listeners = self.event_manager._listeners.get((self.test_event, True), [])
         self.assertIn(
             test_func,
             cast(list[Callable], listeners),
@@ -78,9 +77,8 @@ class TestEventManager(unittest.TestCase):
         def test_func2() -> None:
             pass
 
-        event_dict = self.event_manager._listeners.get(self.test_event, {})
-        conc_listeners = event_dict.get(True)
-        seq_listeners = event_dict.get(False)
+        conc_listeners = self.event_manager._listeners.get((self.test_event, True), [])
+        seq_listeners = self.event_manager._listeners.get((self.test_event, False), [])
         self.assertNotIn(
             test_func,
             cast(list[Callable], conc_listeners),
@@ -107,17 +105,11 @@ class TestEventManager(unittest.TestCase):
 
         self.event_manager.deregister(test_func, self.test_event)
 
-        event_dict = self.event_manager._listeners.get(self.test_event)
-        assert event_dict
-        call_list = event_dict.get(True)
-        assert call_list is not None
+        call_list = self.event_manager._listeners.get((self.test_event, True), [])
 
         self.assertNotIn(test_func, call_list)
 
-        event_dict2 = self.event_manager._listeners.get(self.test_event2)
-        assert event_dict2
-        call_list2 = event_dict2.get(True)
-        assert call_list2
+        call_list2 = self.event_manager._listeners.get((self.test_event2, True), [])
 
         self.assertIn(test_func, call_list2)
 
@@ -130,17 +122,11 @@ class TestEventManager(unittest.TestCase):
 
         self.event_manager.deregister(test_func)
 
-        event_dict = self.event_manager._listeners.get(self.test_event)
-        assert event_dict
-        call_list = event_dict.get(True)
-        assert call_list is not None
+        call_list = self.event_manager._listeners.get((self.test_event, True), [])
 
         self.assertNotIn(test_func, call_list)
 
-        event_dict2 = self.event_manager._listeners.get(self.test_event2)
-        assert event_dict2
-        call_list2 = event_dict2.get(True)
-        assert call_list2 is not None
+        call_list2 = self.event_manager._listeners.get((self.test_event2, True), [])
 
         self.assertNotIn(test_func, call_list2)
 
@@ -183,14 +169,10 @@ class TestEventManager(unittest.TestCase):
                 self.event_manager._class_listener_instances.get(TestClass),
             ),
         )
-        event_dict = self.event_manager._class_listeners.get(self.test_event, {})
-        listeners = event_dict.get(True, [])
-        self.assertIsNotNone(listeners)
+        listeners = self.event_manager._class_listeners.get((self.test_event, True), [])
         listener_pair = (TestClass.test_method, TestClass)
         # Verify method/object pair are associated with the event
-        self.assertIn(
-            listener_pair, cast(list[tuple[Callable, Type[object]]], listeners)
-        )
+        self.assertIn(listener_pair, listeners)
 
     def test_deregister_method(self) -> None:
 
@@ -209,9 +191,7 @@ class TestEventManager(unittest.TestCase):
             TestClass.test_method, self.event_manager._class_listener_events.keys()
         )
 
-        event_dict = self.event_manager._class_listeners.get(self.test_event, {})
-        listeners = event_dict.get(True, [])
-        self.assertIsNotNone(listeners)
+        listeners = self.event_manager._class_listeners.get((self.test_event, True), [])
 
         listener_pair = (TestClass.test_method, TestClass)
         # Verify method/object pair are detached from the event
@@ -239,9 +219,7 @@ class TestEventManager(unittest.TestCase):
         )
         self.assertNotIn(TestClass, self.event_manager._class_listener_instances.keys())
 
-        event_dict = self.event_manager._class_listeners.get(self.test_event, {})
-        listeners = event_dict.get(True, [])
-        self.assertIsNotNone(listeners)
+        listeners = self.event_manager._class_listeners.get((self.test_event, True), [])
 
         listener_pair = (TestClass.test_method, TestClass)
         # Verify method/object pair are detached from the event
@@ -270,14 +248,14 @@ class TestEventManager(unittest.TestCase):
         )
         # But both need to remain in test_event2
 
-        event_dict2 = self.event_manager._listeners.get(self.test_event2, {})
+        listeners = self.event_manager._listeners.get((self.test_event2, True), [])
         self.assertIn(
             test_func,
-            cast(list[Callable], event_dict2.get(True)),
+            cast(list[Callable], listeners),
         )
         self.assertIn(
             test_func2,
-            cast(list[Callable], event_dict2.get(True)),
+            cast(list[Callable], listeners),
         )
 
     def test_notify_concurrent(self) -> None:

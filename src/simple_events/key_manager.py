@@ -26,16 +26,11 @@ class KeyListener(BaseManager):
         super().__init__(handle)
 
         # --------Basic function assignment--------
-        # Meta dict, string bind name as key, then event type as key to get callable
-        # get(bind_name).get(concurrency).get(event_type)
-        self._key_hooks: dict[str, dict[bool, dict[int, list[Callable]]]] = {}
+        self._key_hooks: dict[tuple[str, bool, int], list[Callable]] = {}
 
         # --------Class method assignment--------
-        # Meta dict, string bind name as key, then Pygame event key, method and
-        # affected object as values
-        # get(bind_name).get(concurrency).get(event_type)
         self._class_listeners: dict[
-            str, dict[bool, dict[int, list[tuple[Callable, Type[object]]]]]
+            tuple[str, bool, int], list[tuple[Callable, Type[object]]]
         ] = {}
         # Inversion of _class_listeners. Method as key, bind name
         self._class_listener_binds: dict[Callable, list[str]] = {}
@@ -166,11 +161,11 @@ class KeyListener(BaseManager):
         def decorator(responder: Callable) -> Callable:
             # Regardless, add the responder to the bind within our hook dict
             is_concurrent = not hasattr(responder, "_runs_sequential")
-            event_dict = self._key_hooks.setdefault(key_bind_name, {})
-            hooks = event_dict.setdefault(is_concurrent, {})
-            listeners = hooks.setdefault(event_type, [])
-            if responder not in listeners:
-                listeners.append(responder)
+            event_list = self._key_hooks.setdefault(
+                (key_bind_name, is_concurrent, event_type), []
+            )
+            if responder not in event_list:
+                event_list.append(responder)
             return responder
 
         return decorator
@@ -280,35 +275,12 @@ class KeyListener(BaseManager):
         :param bind_name: The bind to be removed from, or all instances, if
         None. Defaults to None.
         """
-        if bind_name:
-            event_dict = self._key_hooks.get(bind_name)
-            if not event_dict:
-                logger.warning(
-                    f"Bind name '{bind_name}' does not exist in KeyListener "
-                    f"'{self.handle}'"
-                )
-                return
-            found = False
-            for bind_dict in event_dict.values():
-                for bind in bind_dict.values():
-                    if func not in bind:
-                        continue
-                    found = True
-                    bind.remove(func)
-            if not found:
-                logger.warning(
-                    f"Cannot remove function {func.__name__} from '"
-                    f"{bind_name}' of KeyListener: {self.handle}.\n"
-                    f"Function is not bound to that name."
-                )
-            return
-        for event_dict in self._key_hooks.values():
-            for bind_dict in event_dict.values():
-                if not bind_dict:
-                    continue
-                for bind in bind_dict.values():
-                    if bind and func in bind:
-                        bind.remove(func)
+        # Greatly simplified
+        for (name, _, _), call_list in self._key_hooks.items():
+            if bind_name is not None and name != bind_name:
+                continue
+            if func in call_list:
+                call_list.remove(func)
 
     def _capture_method(
         self, cls: Type[object], method: Callable, tag_data: tuple
@@ -334,9 +306,9 @@ class KeyListener(BaseManager):
             self.key_map.generate_bind(key_bind_name, default_key, default_mod)
 
         # -----Add to Class Listeners-----
-        event_dict = self._class_listeners.setdefault(key_bind_name, {})
-        concurrency_dict = event_dict.setdefault(is_concurrent, {})
-        listeners = concurrency_dict.setdefault(event_type, [])
+        listeners = self._class_listeners.setdefault(
+            (key_bind_name, is_concurrent, event_type), []
+        )
         listeners.append((method, cls))
 
         # -----Add to Class Listener Events-----
@@ -397,20 +369,20 @@ class KeyListener(BaseManager):
 
         :param method: Method being unbound
         """
-        for bind_name in self._class_listener_binds.get(method, []):
-            concurrency_dict = self._class_listeners.get(bind_name, {})
-            for concurrency, event_dict in concurrency_dict.items():
-                for event_type, listener_sets in event_dict.items():
-                    # Retain only the listeners that are not the method
-                    listener_sets = list(
-                        filter(
-                            lambda listener_set: method is not listener_set[0],
-                            listener_sets,
-                        )
-                    )
-                    event_dict.update({event_type: listener_sets})
-                concurrency_dict.update({concurrency: event_dict})
-            self._class_listeners.update({bind_name: concurrency_dict})
+        for (
+            name,
+            is_concurrent,
+            event_type,
+        ), listener_set in self._class_listeners.items():
+            listener_set = list(
+                filter(
+                    lambda call_list: method is not call_list[0],
+                    listener_set,
+                )
+            )
+            self._class_listeners.update(
+                {(name, is_concurrent, event_type): listener_set}
+            )
         self._class_listener_binds.pop(method)
 
     def clear_bind(self, bind_name: str, eliminate_bind: bool = False) -> None:
@@ -421,27 +393,28 @@ class KeyListener(BaseManager):
         :param eliminate_bind: Boolean for determining if the bind should be removed
         from the JoyMap and KeyMap, defaults to False
         """
+        to_delete: list[tuple[str, bool, int]] = []
+        for name, is_concurrent, event_type in self._key_hooks.keys():
+            if name == bind_name:
+                to_delete.append((name, is_concurrent, event_type))
+        for key in to_delete:
+            # Not including default value since the keys came directly from the
+            # dictionary and shouldn't be absent
+            # If this errors, it suggests another process is deleting the key first,
+            # which could be causing other issues.
+            self._key_hooks.pop(key)
+
+        # Repeat for class listeners
+        to_delete = []
+        for name, is_concurrent, event_type in self._class_listeners.keys():
+            if name == bind_name:
+                to_delete.append((name, is_concurrent, event_type))
+        for key in to_delete:
+            self._class_listeners.pop(key)
+
         if eliminate_bind:
-            bind = self._key_hooks.pop(bind_name, None)
-            if bind is None:
-                logger.warning(
-                    f" Cannot remove bind '{bind_name}';" " bind does not exist."
-                )
-                return
             self.key_map.remove_bind(bind_name)
             self.joy_map.remove_bind(bind_name)
-            return
-        call_list = self._key_hooks.get(bind_name, None)
-        class_call_list = self._class_listeners.get(bind_name, None)
-        if call_list is None and class_call_list is None:
-            logger.warning(f" Bind '{bind_name}' not in key registry.")
-            return
-        if call_list:
-            logger.info(f"Clearing all functions from bind {bind_name}")
-            call_list.clear()
-        if class_call_list:
-            logger.info(f"Clearing all methods from bind {bind_name}")
-            class_call_list.clear()
 
     def _validate_input(self, key_bind: KeyBind, event: pygame.Event) -> bool:
         """
@@ -472,32 +445,32 @@ class KeyListener(BaseManager):
         :param event: pygame event to be passed to the callables
         """
         key_changed: int | None = getattr(event, "key", None)
-        # mod_keys: int | None = getattr(event, "mod", None)
 
-        # input_data = (key_changed, mod_keys)
+        binds: list[str] = []
+        if key_changed is not None:
+            binds = [
+                key_bind.bind_name
+                for key_bind in self.key_map.key_binds.get(key_changed, [])
+                if self._validate_input(key_bind, event)
+            ]
+        else:
+            if event.type == pygame.JOYBUTTONDOWN:
+                print(event.button)
+            binds = self.joy_map.get(event, [])
         conc_funcs_lists = []
         seq_funcs_lists = []
         conc_methods_lists = []
         seq_methods_lists = []
-        for key_bind in self.key_map.key_binds.get(key_changed, []):
-            # Try to match the mod keys. If they don't, move on to the next.
-            if not self._validate_input(key_bind, event):
-                continue
-            hooks = self._key_hooks.get(key_bind.bind_name, {})
-            conc_funcs_lists.append(hooks.get(True, {}).get(event.type, []))
-            seq_funcs_lists.append(hooks.get(False, {}).get(event.type, []))
+        for bind in binds:
+            conc_funcs_lists.append(self._key_hooks.get((bind, True, event.type), []))
+            seq_funcs_lists.append(self._key_hooks.get((bind, False, event.type), []))
 
-            method_hooks = self._class_listeners.get(key_bind.bind_name, {})
-            conc_methods_lists.append(method_hooks.get(True, {}).get(event.type, []))
-            seq_methods_lists.append(method_hooks.get(False, {}).get(event.type, []))
-        for bind in self.joy_map.get(event, []):
-            hooks = self._key_hooks.get(bind, {})
-            conc_funcs_lists.append(hooks.get(True, {}).get(event.type, []))
-            seq_funcs_lists.append(hooks.get(False, {}).get(event.type, []))
-
-            method_hooks = self._class_listeners.get(bind, {})
-            conc_methods_lists.append(method_hooks.get(True, {}).get(event.type, []))
-            seq_methods_lists.append(method_hooks.get(False, {}).get(event.type, []))
+            conc_methods_lists.append(
+                self._class_listeners.get((bind, True, event.type), [])
+            )
+            seq_methods_lists.append(
+                self._class_listeners.get((bind, False, event.type), [])
+            )
         return _CallableSets(
             concurrent_functions=list(itertools.chain(*conc_funcs_lists)),
             sequential_functions=list(itertools.chain(*seq_funcs_lists)),
