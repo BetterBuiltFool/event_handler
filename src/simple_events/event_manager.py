@@ -74,9 +74,10 @@ class EventManager(BaseManager):
         event_type = tag_data[0]  # Only piece of data
 
         # -----Add to Class Listeners-----
-        event_dict = self._class_listeners.setdefault(event_type, {})
-        concurrency_list = event_dict.setdefault(is_concurrent, [])
-        concurrency_list.append((method, cls))
+        class_listeners = self._class_listeners.setdefault(
+            (event_type, is_concurrent), []
+        )
+        class_listeners.append((method, cls))
 
         # -----Add to Class Listener Events-----
         self._class_listener_events.setdefault(method, []).append(event_type)
